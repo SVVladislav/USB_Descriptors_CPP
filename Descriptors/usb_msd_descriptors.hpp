@@ -6,11 +6,10 @@
 #include "C++17/usb_descriptors.h"
 #endif 
 
-STRING_DESCRIPTOR(0, StringLangID,    u"\x0409"                );
-STRING_DESCRIPTOR(1, StringVendor,    u"STMicroelectronics"    );
-STRING_DESCRIPTOR(2, StringProduct,   u"STM32 Custom WINUSB"   );
-STRING_DESCRIPTOR(3, StringSerial,    u"00000000001B"          );
-STRING_DESCRIPTOR(0xEE, StringMSOSSD, u"MSFT100\x0000"         );   //Microsoft OS String Descriptor
+STRING_DESCRIPTOR( 0, StringLangID,    u"\x0409"                );
+STRING_DESCRIPTOR( 1, StringVendor,    u"STMicroelectronics"    );
+STRING_DESCRIPTOR( 2, StringProduct,   u"STM32 Mass Storage" );
+STRING_DESCRIPTOR( 3, StringSerial,    u"00000000001B"          );
 
 inline const uint8_t * const descr_table[] =
 {
@@ -18,13 +17,12 @@ inline const uint8_t * const descr_table[] =
   (uint8_t *)&StringVendor,
   (uint8_t *)&StringProduct,
   (uint8_t *)&StringSerial,
-  (uint8_t *)&StringMSOSSD
 };
 
 using namespace USB_DESCRIPTORS;
 
 //==============================================================================
-// WINUSB Device Descriptor
+// MSD Device Descriptor
 //==============================================================================
 constexpr DEVICE_DESCRIPTOR
 < bcdUSB<0x02'00>,       // версия usb 2.0
@@ -33,7 +31,7 @@ constexpr DEVICE_DESCRIPTOR
   bDeviceProtocol<0>,    // Protocol is specified in the interface descriptor
   bMaxPacketSize0<64>,
   idVendor<0x0483>,      // VID
-  idProduct<0x572B>,     // PID
+  idProduct<0x572C>,     // PID
   bcdDevice<0x0200>,
   iManufacturer<1>,      // индекс строки с названием производителя
   iProduct<2>,           // индекс строки с названием устройства
@@ -42,7 +40,7 @@ constexpr DEVICE_DESCRIPTOR
 > Device_Descriptor;
 
 //==============================================================================
-// WINUSB Device Qualifier Descriptor
+// MSD Device Qualifier Descriptor
 //==============================================================================
 constexpr DEVICE_QUALIFIER_DESCRIPTOR
 < bcdUSB<0x02'00>,       // версия usb 2.0
@@ -56,11 +54,11 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
 
 
 //==============================================================================
-// WINUSB Configuration Descriptor
+// MSD Configuration Descriptor
 //==============================================================================
-constexpr WINUSB_CONFIGURATION_DESCRIPTOR
+constexpr MSD_CONFIGURATION_DESCRIPTOR
 < CONFIG_DESCRIPTOR
-  < bConfigurationValue<1>,               // configuration 1
+  < bConfigurationValue<1>,               // Configuration 1
     iConfiguration<0>,                    // No String Descriptor
     bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
     bMaxPower<100/2>                      // 100 mA
@@ -69,9 +67,9 @@ constexpr WINUSB_CONFIGURATION_DESCRIPTOR
   < bInterfaceNumber<0>,
     bAlternateSetting<0>,
     bNumEndpoints<2>,
-    bInterfaceClass<0xFF>,     // Vendor Specified
-    bInterfaceSubClass<0xFF>,  //
-    bInterfaceProtocol<0xFF>,  //
+    bInterfaceClass<8>,        // MSC Class
+    bInterfaceSubClass<6>,     // SCSI transparent
+    bInterfaceProtocol<0x50>,  // BULK-ONLY transport
     iInterface<0>              // No String Descriptor
   >,
   ENDPOINT_DESCRIPTOR    // EP1 IN Bulk EndPoint
@@ -87,13 +85,3 @@ constexpr WINUSB_CONFIGURATION_DESCRIPTOR
     bInterval<0>
   >
 > Configuration_Descriptor;
-
-constexpr WINUSB_COMPATIBLE_ID_FEATURE_DESCRIPTOR WINUSBCompatibleID =
-{
-  .dwLength         = sizeof(WINUSB_COMPATIBLE_ID_FEATURE_DESCRIPTOR),
-  .bcdVersion       = 0x0100,
-  .wCompatibilityID = 0x0004,
-  .bSections        = 1,
-  .bReserv2         = 1,
-  .IDString         = "WINUSB\0"
-};

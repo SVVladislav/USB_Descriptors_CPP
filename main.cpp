@@ -1,11 +1,25 @@
 #include <stdio.h>
 
 #define CUSTOM_HID
+//#define CDC
+//#define WIN_USB
+//#define MSD
+
 
 #ifdef CUSTOM_HID
 #include "Descriptors/usb_hid_descriptors.hpp"
-#else
+#endif
+
+#ifdef CDC
 #include "Descriptors/usb_cdc_descriptors.hpp"
+#endif
+
+#ifdef WIN_USB
+#include "Descriptors/usb_winusb_descriptors.hpp"
+#endif
+
+#ifdef MSD
+#include "Descriptors/usb_msd_descriptors.hpp"
 #endif
 
 int main()
@@ -14,8 +28,8 @@ int main()
   for(auto &x : Device_Descriptor.buf) 
     printf("%.2X ", x);
 
-  printf("\nConfiguration descriptor %i bytes:\n", sizeof(ConfigDescriptor));
-  for(auto &x : ConfigDescriptor.buf) 
+  printf("\nConfiguration descriptor %i bytes:\n", sizeof(Configuration_Descriptor));
+  for(auto &x : Configuration_Descriptor.buf) 
     printf("%.2X ", x);
 
 #ifdef CUSTOM_HID

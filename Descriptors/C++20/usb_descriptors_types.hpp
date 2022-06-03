@@ -321,3 +321,13 @@ template<is_Config CFG,
          is_Endpoint EP_OUT>
 struct WINUSB_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
   CFG, Interface, EP_IN, EP_OUT> { };
+
+//==============================================================================
+// MSD Configuration Descriptor Type
+//==============================================================================
+template<is_Config CFG,
+         is_Interface Interface,
+         is_Endpoint EP_IN,
+         is_Endpoint EP_OUT>
+struct MSD_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
+  CFG, Interface, EP_IN, EP_OUT> { };

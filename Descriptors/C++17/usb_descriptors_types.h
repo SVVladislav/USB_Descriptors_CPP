@@ -419,3 +419,18 @@ struct WINUSB_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
   static_assert(is_Interface<Interface>(), "Not Interface Descriptor");
   static_assert(is_Endpoint<EP_IN>() && is_Endpoint<EP_OUT>(), "Not Endpoint Descriptor");
 };
+
+//==============================================================================
+// MSD Configuration Descriptor Type
+//==============================================================================
+template<typename CFG,
+         typename Interface,
+         typename EP_IN,
+         typename EP_OUT>
+struct MSD_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
+  CFG, Interface, EP_IN, EP_OUT>
+{
+  static_assert(is_Config<CFG>(), "Not CONFIG_DESCRIPTOR Descriptor");
+  static_assert(is_Interface<Interface>(), "Not Interface Descriptor");
+  static_assert(is_Endpoint<EP_IN>() && is_Endpoint<EP_OUT>(), "Not Endpoint Descriptor");
+};
