@@ -107,11 +107,10 @@ constexpr HID_REPORT_DESCRIPTOR<
 // HID Configuration Descriptor
 //==============================================================================
 constexpr CUSOM_HID_CONFIGURATION_DESCRIPTOR
-< CONFIGURATION<
-    bConfigurationValue<1>,               // configuration 1
-    iConfiguration<0>,                    // No String Descriptor
-    bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
-    bMaxPower<100/2> >,                   // 100 mA
+< bConfigurationValue<1>,               // configuration 1
+  iConfiguration<0>,                    // No String Descriptor
+  bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
+  bMaxPower<100/2>,                     // 100 mA
   
   INTERFACE_DESCRIPTOR <    // Interface 0 - CUSTOM HID
    bInterfaceNumber<0>,

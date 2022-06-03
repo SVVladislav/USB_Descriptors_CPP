@@ -7,7 +7,6 @@ template<typename T> concept is_Descriptor = std::is_base_of_v<DESCRIPTOR_BASE, 
 template<typename T> concept is_DescriptorList = std::is_base_of_v<DESCRIPTOR_LIST_BASE, T>;
 template<typename T> concept is_DescriptorListElement = is_Descriptor<T> || is_DescriptorList<T>;
 template<typename T> concept is_ConfigurationDescriptor = std::is_base_of_v<CONFIGURATION_DESCRIPTOR_BASE, T>;
-template<typename T> concept is_Configuration = std::is_base_of_v<CONFIGURATION_BASE, T>;
 template<typename T> concept is_InterfaceDescriptor = std::is_base_of_v<INTERFACE_DESCRIPTOR_BASE, T>;
 template<typename T> concept is_EndpointDescriptor = std::is_base_of_v<ENDPOINT_DESCRIPTOR_BASE, T>;
 template<typename T> concept is_Interface_Association = std::is_base_of_v<INTERFACE_ASSOCIATION_DESCRIPTOR_BASE, T>;
@@ -166,13 +165,39 @@ struct CONFIGURATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CONFIGURATIO
   using bMaxPower = TbMaxPower;
 };
 
-template<typename TbConfigurationValue,
-         typename TiConfiguration,
-         typename TbmAttributes,
-         typename TbMaxPower>
-struct CONFIGURATION : CONFIGURATION_DESCRIPTOR<
-  wTotalLength<9>, bNumInterfaces<0>, TbConfigurationValue,
-  TiConfiguration, TbmAttributes, TbMaxPower>, CONFIGURATION_BASE {};
+//==============================================================================
+// Device Configuration Descriptor Type
+//==============================================================================
+template<is_bConfigurationValue TbConfigurationValue,
+         is_iConfiguration TiConfiguration,
+         is_bmAttributes TbmAttributes,
+         is_bMaxPower TbMaxPower,
+         is_DescriptorListElement... DSCS>
+class DEVICE_CONFIGURATION_DESCRIPTOR
+{
+  static constexpr auto sz = (sizeof(DSCS::buf)+...+9);
+
+  static constexpr auto CalcInterfacesNum()
+  {
+    return DESCRIPTOR_LIST<DSCS...>::GetDescriptors().filter(
+           [](auto x) { return is_InterfaceDescriptor<TypeUnBox<x>>; }).size();
+  }
+
+  using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
+                                             bNumInterfaces<CalcInterfacesNum()>,
+                                             TbConfigurationValue,
+                                             TiConfiguration,
+                                             TbmAttributes,
+                                             TbMaxPower>;
+public:
+  constexpr DEVICE_CONFIGURATION_DESCRIPTOR()
+  {
+    uint8_t* p = buf;
+    copy_buf(CFG_DESCR{}, &p);
+    (copy_buf(DSCS{}, &p), ...);
+  }
+  uint8_t buf[sz]{};
+};
 
 //==============================================================================
 // Interface Descriptor Type
@@ -220,36 +245,6 @@ template<is_bFirstInterface TbFirstInterface,
 struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTERFACE_ASSOCIATION,
   TbFirstInterface, TbInterfaceCount, TbFunctionClass,
   TbFunctionSubClass, TbFunctionProtocol, TiFunction> { };
-
-//==============================================================================
-// Class Configuration Descriptor Type
-//==============================================================================
-template<is_Configuration CFG, is_DescriptorListElement... DSCS>
-class USB_CLASS_CONFIGURATION_DESCRIPTOR
-{
-  static constexpr auto sz = sizeof(CFG::buf) + (sizeof(DSCS::buf) + ... + 0);
-
-  static constexpr auto CalcInterfacesNum()
-  {
-    return DESCRIPTOR_LIST<DSCS...>::GetDescriptors().filter(
-           [](auto x) { return is_InterfaceDescriptor<TypeUnBox<x>>; }).size();
-  }
-
-  using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
-                                             bNumInterfaces<CalcInterfacesNum()>,
-                                             typename CFG::bConfigurationValue,
-                                             typename CFG::iConfiguration,
-                                             typename CFG::bmAttributes,
-                                             typename CFG::bMaxPower>;
-public:
-  constexpr USB_CLASS_CONFIGURATION_DESCRIPTOR()
-  {
-    uint8_t* p = buf;
-    copy_buf(CFG_DESCR{}, &p);
-    (copy_buf(DSCS{}, &p), ...);
-  }
-  uint8_t buf[sz]{};
-};
 
 //==============================================================================
 // CDC Header Functional Descriptor Type
@@ -301,37 +296,49 @@ struct CUSTOM_HID_DESCRIPTOR : public DESCRIPTOR<DescriptorType::HID,
 //==============================================================================
 // Custom HID Configuration Descriptor Type
 //==============================================================================
-template<is_Configuration CFG,
+template<is_bConfigurationValue TbConfigurationValue,
+         is_iConfiguration TiConfiguration,
+         is_bmAttributes TbmAttributes,
+         is_bMaxPower TbMaxPower,
          is_InterfaceDescriptor Interface,
          is_CustomHID CustomHID,
          is_EndpointDescriptor EP_IN,
          is_EndpointDescriptor EP_OUT>
-struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
-  CFG, Interface, CustomHID, EP_IN, EP_OUT>
+struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
+  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
+  Interface, CustomHID, EP_IN, EP_OUT>
 {
     static constexpr auto Custom_HID_Descriptor_Size() { return sizeof(CustomHID::buf); }
     static constexpr auto Custom_HID_Descriptor_Adr(uint8_t *config_descriptor)
     {
-        return config_descriptor + sizeof(CFG) + sizeof(Interface);
+        return config_descriptor + 9 + sizeof(Interface);
     }
 };
 
 //==============================================================================
 // WINUSB Configuration Descriptor Type
 //==============================================================================
-template<is_Configuration CFG,
+template<is_bConfigurationValue TbConfigurationValue,
+         is_iConfiguration TiConfiguration,
+         is_bmAttributes TbmAttributes,
+         is_bMaxPower TbMaxPower,
          is_InterfaceDescriptor Interface,
          is_EndpointDescriptor EP_IN,
          is_EndpointDescriptor EP_OUT>
-struct WINUSB_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
-  CFG, Interface, EP_IN, EP_OUT> { };
+struct WINUSB_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
+  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
+  Interface, EP_IN, EP_OUT> { };
 
 //==============================================================================
 // MSD Configuration Descriptor Type
 //==============================================================================
-template<is_Configuration CFG,
+template<is_bConfigurationValue TbConfigurationValue,
+         is_iConfiguration TiConfiguration,
+         is_bmAttributes TbmAttributes,
+         is_bMaxPower TbMaxPower,
          is_InterfaceDescriptor Interface,
          is_EndpointDescriptor EP_IN,
          is_EndpointDescriptor EP_OUT>
-struct MSD_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
-  CFG, Interface, EP_IN, EP_OUT> { };
+struct MSD_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
+  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
+  Interface, EP_IN, EP_OUT> { };

@@ -54,12 +54,11 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
 //==============================================================================
 // CDC VCP Configuration Descriptor
 //==============================================================================
-constexpr USB_CLASS_CONFIGURATION_DESCRIPTOR
-< CONFIGURATION<
-    bConfigurationValue<1>,                 // configuration 1
-    iConfiguration<0>,                      // No String Descriptor
-    bmAttributes<cfg_Attr::SelfPowered>,    // Self powered
-    bMaxPower<100/2> >,                     // 100 mA
+constexpr DEVICE_CONFIGURATION_DESCRIPTOR
+<   bConfigurationValue<1>,               // configuration 1
+    iConfiguration<0>,                    // No String Descriptor
+    bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
+    bMaxPower<100/2>,                     // 100 mA
 
   INTERFACE_DESCRIPTOR<     // Interface 0 - CDC Communication
     bInterfaceNumber<0>,
@@ -116,5 +115,6 @@ constexpr USB_CLASS_CONFIGURATION_DESCRIPTOR
     bInterval<0> >
 
 > Configuration_Descriptor;
+
 
 

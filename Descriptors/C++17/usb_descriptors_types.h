@@ -5,7 +5,6 @@ template<typename T> constexpr bool is_Descriptor() { return std::is_base_of_v<D
 template<typename T> constexpr bool is_DescriptorList() { return std::is_base_of_v<DESCRIPTOR_LIST_BASE, T>; }
 template<typename T> constexpr bool is_DescriptorListElement() { return is_Descriptor<T>() || is_DescriptorList<T>(); }
 template<typename T> constexpr bool is_ConfigurationDescriptor() { return std::is_base_of_v<CONFIGURATION_DESCRIPTOR_BASE,T>; }
-template<typename T> constexpr bool is_Configuration() { return std::is_base_of_v<CONFIGURATION_BASE,T>; }
 template<typename T> constexpr bool is_InterfaceDescriptor() { return std::is_base_of_v<INTERFACE_DESCRIPTOR_BASE,T>; }
 template<typename T> constexpr bool is_EndpointDescriptor() { return std::is_base_of_v<ENDPOINT_DESCRIPTOR_BASE,T>; }
 // "Концепты" для полей дескрипторов
@@ -198,15 +197,47 @@ struct CONFIGURATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CONFIGURATIO
   static_assert(is_bmAttributes_CONFIG<TbmAttributes>(), "Not Configuration bmAttributes record");
   static_assert(is_bMaxPower<TbMaxPower>(),              "Not bMaxPower record");
 };
-
+  
+//==============================================================================
+// Device Configuration Descriptor Type
+//==============================================================================
 template<typename TbConfigurationValue,
          typename TiConfiguration,
          typename TbmAttributes,
-         typename TbMaxPower>
-struct CONFIGURATION : CONFIGURATION_DESCRIPTOR<
-  wTotalLength<9>, bNumInterfaces<0>, TbConfigurationValue,
-  TiConfiguration, TbmAttributes, TbMaxPower>, CONFIGURATION_BASE {};
+         typename TbMaxPower,
+         typename...DSCS>
+class DEVICE_CONFIGURATION_DESCRIPTOR
+{
+  static_assert(is_bConfigurationValue<TbConfigurationValue>(), "Not bConfigurationValue record");
+  static_assert(is_iConfiguration<TiConfiguration>(),    "Not iConfiguration record");
+  static_assert(is_bmAttributes_CONFIG<TbmAttributes>(), "Not Configuration bmAttributes record");
+  static_assert(is_bMaxPower<TbMaxPower>(),              "Not bMaxPower record");
+  static_assert((is_DescriptorListElement<DSCS>()&&...), "DSCS not Descriptor List Element");
 
+  static constexpr auto sz = (sizeof(DSCS::buf)+...+9);
+
+  static constexpr auto CalcInterfacesNum()
+  {
+    return DESCRIPTOR_LIST<DSCS...>::GetDescriptors().filter(
+           [](auto x) { return is_InterfaceDescriptor<type_unbox<decltype(x)>>(); } ).size();
+  }
+
+  using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
+                                             bNumInterfaces<CalcInterfacesNum()>,
+                                             TbConfigurationValue,
+                                             TiConfiguration,
+                                             TbmAttributes,
+                                             TbMaxPower>;
+public:
+  constexpr DEVICE_CONFIGURATION_DESCRIPTOR()
+  {
+    uint8_t *p = buf;
+    copy_buf(CFG_DESCR{}, &p);
+    (copy_buf(DSCS{}, &p),...);
+  }
+  uint8_t buf[sz]{};
+};  
+  
 //==============================================================================
 // Interface Descriptor Type
 //==============================================================================
@@ -276,39 +307,6 @@ struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTE
   static_assert(is_bFunctionSubClass<TbFunctionSubClass>(), "Not bFunctionSubClass record");
   static_assert(is_bFunctionProtocol<TbFunctionProtocol>(), "Not bFunctionProtocol record");
   static_assert(is_iFunction<TiFunction>(), "Not iFunction record");
-};
-
-//==============================================================================
-// Class Configuration Descriptor Type
-//==============================================================================
-template<typename CFG, typename...DSCS>
-class USB_CLASS_CONFIGURATION_DESCRIPTOR
-{
-  static_assert(is_Descriptor<CFG>(), "CFG not Descriptor");
-  static_assert((is_DescriptorListElement<DSCS>()&&...), "DSCS not Descriptor List Element");
-
-  static constexpr auto sz = sizeof(CFG::buf)+(sizeof(DSCS::buf)+...+0);
-
-  static constexpr auto CalcInterfacesNum()
-  {
-    return DESCRIPTOR_LIST<DSCS...>::GetDescriptors().filter(
-           [](auto x) { return is_InterfaceDescriptor<type_unbox<decltype(x)>>(); } ).size();
-  }
-
-  using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
-                                             bNumInterfaces<CalcInterfacesNum()>,
-                                             typename CFG::bConfigurationValue,
-                                             typename CFG::iConfiguration,
-                                             typename CFG::bmAttributes,
-                                             typename CFG::bMaxPower>;
-public:
-  constexpr USB_CLASS_CONFIGURATION_DESCRIPTOR()
-  {
-    uint8_t *p = buf;
-    copy_buf(CFG_DESCR{}, &p);
-    (copy_buf(DSCS{}, &p),...);
-  }
-  uint8_t buf[sz]{};
 };
 
 //==============================================================================
@@ -387,15 +385,19 @@ template<typename T> constexpr bool is_CustomHID() { return std::is_base_of_v<CU
 //==============================================================================
 // Custom HID Configuration Descriptor Type
 //==============================================================================
-template<typename CFG,
+template<typename TbConfigurationValue,
+         typename TiConfiguration,
+         typename TbmAttributes,
+         typename TbMaxPower,
          typename Interface,
          typename CustomHID,
          typename EP_IN,
          typename EP_OUT>
-struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
-  CFG, Interface, CustomHID, EP_IN, EP_OUT>
+struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
+  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
+  Interface, CustomHID, EP_IN, EP_OUT>
 {
-  static_assert(is_Configuration<CFG>(), "Not CONFIGURATION class");
+  //static_assert(is_Configuration<CFG>(), "Not CONFIGURATION class");
   static_assert(is_InterfaceDescriptor<Interface>(), "Not Interface Descriptor");
   static_assert(is_CustomHID<CustomHID>(), "Not CustomHID Descriptor");
   static_assert(is_EndpointDescriptor<EP_IN>() && is_EndpointDescriptor<EP_OUT>(), "Not Endpoint Descriptor");
@@ -403,21 +405,24 @@ struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
   static constexpr auto Custom_HID_Descriptor_Size() { return sizeof(CustomHID::buf); }
   static constexpr auto Custom_HID_Descriptor_Adr(uint8_t *config_descriptor)
   {
-    return config_descriptor+sizeof(CFG)+sizeof(Interface);
+    return config_descriptor + 9 + sizeof(Interface);
   }
 };
 
 //==============================================================================
 // WINUSB Configuration Descriptor Type
 //==============================================================================
-template<typename CFG,
+template<typename TbConfigurationValue,
+         typename TiConfiguration,
+         typename TbmAttributes,
+         typename TbMaxPower,
          typename Interface,
          typename EP_IN,
          typename EP_OUT>
-struct WINUSB_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
-  CFG, Interface, EP_IN, EP_OUT>
+struct WINUSB_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
+  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
+  Interface, EP_IN, EP_OUT>
 {
-  static_assert(is_Configuration<CFG>(), "Not CONFIGURATION class");
   static_assert(is_InterfaceDescriptor<Interface>(), "Not Interface Descriptor");
   static_assert(is_EndpointDescriptor<EP_IN>() && is_EndpointDescriptor<EP_OUT>(), "Not Endpoint Descriptor");
 };
@@ -425,14 +430,17 @@ struct WINUSB_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
 //==============================================================================
 // MSD Configuration Descriptor Type
 //==============================================================================
-template<typename CFG,
+template<typename TbConfigurationValue,
+         typename TiConfiguration,
+         typename TbmAttributes,
+         typename TbMaxPower,
          typename Interface,
          typename EP_IN,
          typename EP_OUT>
-struct MSD_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
-  CFG, Interface, EP_IN, EP_OUT>
+struct MSD_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
+  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
+  Interface, EP_IN, EP_OUT>
 {
-  static_assert(is_Configuration<CFG>(), "Not CONFIGURATION class");
   static_assert(is_InterfaceDescriptor<Interface>(), "Not Interface Descriptor");
   static_assert(is_EndpointDescriptor<EP_IN>() && is_EndpointDescriptor<EP_OUT>(), "Not Endpoint Descriptor");
 };
