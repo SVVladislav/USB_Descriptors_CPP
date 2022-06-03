@@ -3,11 +3,11 @@
 // "Концепты" типов дескрипторов
 template<typename T> constexpr bool is_Descriptor() { return std::is_base_of_v<DESCRIPTOR_BASE, T>; }
 template<typename T> constexpr bool is_DescriptorList() { return std::is_base_of_v<DESCRIPTOR_LIST_BASE, T>; }
-template<typename T> constexpr bool is_Interface() { return std::is_base_of_v<INTERFACE_BASE, T>; }
 template<typename T> constexpr bool is_DescriptorListElement() { return is_Descriptor<T>() || is_DescriptorList<T>(); }
 template<typename T> constexpr bool is_ConfigurationDescriptor() { return std::is_base_of_v<CONFIGURATION_DESCRIPTOR_BASE,T>; }
 template<typename T> constexpr bool is_InterfaceDescriptor() { return std::is_base_of_v<INTERFACE_DESCRIPTOR_BASE,T>; }
 template<typename T> constexpr bool is_EndpointDescriptor() { return std::is_base_of_v<ENDPOINT_DESCRIPTOR_BASE,T>; }
+template<typename T> constexpr bool is_Interface() { return std::is_base_of_v<INTERFACE_BASE, T>; }
 // "Концепты" для полей дескрипторов
 template<typename T> constexpr bool is_bmAttributes() { return std::is_base_of_v<BMATTRIBUTES_BASE,T>; }
 template<typename T> constexpr bool is_bmAttributes_EP()
@@ -417,30 +417,3 @@ struct CUSTOM_HID_DESCRIPTOR : public DESCRIPTOR<DescriptorType::HID,
   static_assert(is_wDescriptorLength_0<TwDescriptorLength_0>(),"Not wDescriptorLength_0 record");
 };
 template<typename T> constexpr bool is_CustomHID() { return std::is_base_of_v<CUSTOM_HID_DESCRIPTOR_BASE,T>; }
-
-//==============================================================================
-// Custom HID Configuration Descriptor Type
-//==============================================================================
-template<typename TbConfigurationValue,
-         typename TiConfiguration,
-         typename TbmAttributes,
-         typename TbMaxPower,
-         typename Interface,
-         typename CustomHID,
-         typename EP_IN,
-         typename EP_OUT>
-struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
-  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
-  Interface, CustomHID, EP_IN, EP_OUT>
-{
-  //static_assert(is_Configuration<CFG>(), "Not CONFIGURATION class");
-  static_assert(is_InterfaceDescriptor<Interface>(), "Not Interface Descriptor");
-  static_assert(is_CustomHID<CustomHID>(), "Not CustomHID Descriptor");
-  static_assert(is_EndpointDescriptor<EP_IN>() && is_EndpointDescriptor<EP_OUT>(), "Not Endpoint Descriptor");
-
-  static constexpr auto Custom_HID_Descriptor_Size() { return sizeof(CustomHID::buf); }
-  static constexpr auto Custom_HID_Descriptor_Adr(uint8_t *config_descriptor)
-  {
-    return config_descriptor + 9 + sizeof(Interface);
-  }
-};
