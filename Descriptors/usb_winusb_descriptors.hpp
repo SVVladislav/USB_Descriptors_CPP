@@ -8,21 +8,23 @@
 
 STRING_DESCRIPTOR(0, StringLangID,    u"\x0409"                );
 STRING_DESCRIPTOR(1, StringVendor,    u"STMicroelectronics"    );
-STRING_DESCRIPTOR(2, StringProduct,   u"STM32 Custom HID"      );
+STRING_DESCRIPTOR(2, StringProduct,   u"STM32 Custom WINUSB"   );
 STRING_DESCRIPTOR(3, StringSerial,    u"00000000001B"          );
+STRING_DESCRIPTOR(0xEE, StringMSOSSD, u"MSFT100\x0000"         );   //Microsoft OS String Descriptor
 
 inline const uint8_t * const descr_table[] =
 {
   (uint8_t *)&StringLangID,
   (uint8_t *)&StringVendor,
   (uint8_t *)&StringProduct,
-  (uint8_t *)&StringSerial
+  (uint8_t *)&StringSerial,
+  (uint8_t *)&StringMSOSSD
 };
 
 using namespace USB_DESCRIPTORS;
 
 //==============================================================================
-// Device Descriptor
+// WINUSB Device Descriptor
 //==============================================================================
 constexpr DEVICE_DESCRIPTOR
 < bcdUSB<0x02'00>,       // версия usb 2.0
@@ -31,7 +33,7 @@ constexpr DEVICE_DESCRIPTOR
   bDeviceProtocol<0>,    // Protocol is specified in the interface descriptor
   bMaxPacketSize0<64>,
   idVendor<0x0483>,      // VID
-  idProduct<0x572A>,     // PID
+  idProduct<0x572B>,     // PID
   bcdDevice<0x0200>,
   iManufacturer<1>,      // индекс строки с названием производителя
   iProduct<2>,           // индекс строки с названием устройства
@@ -40,7 +42,7 @@ constexpr DEVICE_DESCRIPTOR
 > Device_Descriptor;
 
 //==============================================================================
-// Device Qualifier Descriptor
+// WINUSB Device Qualifier Descriptor
 //==============================================================================
 constexpr DEVICE_QUALIFIER_DESCRIPTOR
 < bcdUSB<0x02'00>,       // версия usb 2.0
@@ -52,94 +54,46 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
   bReserved<0>
 > Device_Qualifier_Descriptor;
 
-//==============================================================================
-// HID Report Descriptor
-//==============================================================================
-using namespace HID_REPORT;
-
-constexpr HID_REPORT_DESCRIPTOR<
-  UsagePage<USAGE_PAGE::VENDOR_DEFINED_PAGE_1>,
-  Usage<1>,
-  COLLECTION_APPLICATION<
-   ReportID<1>,
-   Usage<1>,
-   LogicalMinMax<0,1>,
-   ReportFormat<8,1>,
-   Feature<0x82>,
-   ReportID<1>,
-   Usage<1>,
-   Output<0x82>,
-
-   ReportID<2>,
-   Usage<2>,
-   LogicalMinMax<0,1>,
-   ReportFormat<8,1>,
-   Feature<0x82>,
-   ReportID<2>,
-   Usage<2>,
-   Output<0x82>,
-
-   ReportID<3>,
-   Usage<3>,
-   LogicalMinMax<0,255>,
-   ReportFormat<8,1>,
-   Feature<0x82>,
-   ReportID<3>,
-   Usage<3>,
-   Output<0x82>,
-
-   ReportID<4>,
-   Usage<3>,
-   LogicalMinMax<0,255>,
-   ReportFormat<8,1>,
-   Feature<0x82>,
-   ReportID<4>,
-   Usage<3>,
-   Output<0x82>,
-
-   ReportID<5>,
-   Usage<4>,
-   ReportFormat<8,1>,
-   Input<0x02>
-  >
-> HidReportDescriptor;
 
 //==============================================================================
-// HID Configuration Descriptor
+// WINUSB Configuration Descriptor
 //==============================================================================
-constexpr CUSOM_HID_CONFIGURATION_DESCRIPTOR
+constexpr WINUSB_CONFIGURATION_DESCRIPTOR
 < CONFIG_DESCRIPTOR
-  < bConfigurationValue<1>,            // configuration 1
-    iConfiguration<0>,                 // No String Descriptor
+  < bConfigurationValue<1>,               // configuration 1
+    iConfiguration<0>,                    // No String Descriptor
     bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
-    bMaxPower<100/2>                   // 100 mA
+    bMaxPower<100/2>                      // 100 mA
   >,
-  INTERFACE_DESCRIPTOR      // Interface 0 - CUSTOM HID
+  INTERFACE_DESCRIPTOR      // Interface 0
   < bInterfaceNumber<0>,
     bAlternateSetting<0>,
     bNumEndpoints<2>,
-    bInterfaceClass<3>,     // Custom HID
-    bInterfaceSubClass<0>,  // 1=BOOT, 0=no boot
-    bInterfaceProtocol<0>,  // 0=none, 1=keyboard, 2=mouse
-    iInterface<0>
+    bInterfaceClass<0xFF>,     // Vendor Specified
+    bInterfaceSubClass<0xFF>,  //
+    bInterfaceProtocol<0xFF>,  //
+    iInterface<0>              // No String Descriptor
   >,
-  CUSTOM_HID_DESCRIPTOR
-  < bcdHID<0x01'11>,                                 // HID Version ( 1.11 )
-    bCountryCode<HID_Localization::Not_Localized>,   // HID_Localization::Not_Localized,
-    bNumDescriptors<1>,                              // Количество дескрипторов в классе
-    bDescriptorType_0<DescriptorType::REPORT>,
-    wDescriptorLength_0<sizeof(HidReportDescriptor)> // Длина Report Descriptor
-  >,
-  ENDPOINT_DESCRIPTOR    // EP1 IN Interrupt EndPoint
+  ENDPOINT_DESCRIPTOR    // EP1 IN Bulk EndPoint
   < bEndpointAddress<1,epDIR::IN>,
-    bmAttributes<epTYPE::Interrupt>,
+    bmAttributes<epTYPE::Bulk>,
     wMaxPacketSize<2>,
-    bInterval<20>
+    bInterval<0>
   >,
-  ENDPOINT_DESCRIPTOR    // EP1 OUT Interrupt EndPoint
+  ENDPOINT_DESCRIPTOR    // EP1 OUT Bulk EndPoint
   < bEndpointAddress<1,epDIR::OUT>,
-    bmAttributes<epTYPE::Interrupt>,
+    bmAttributes<epTYPE::Bulk>,
     wMaxPacketSize<2>,
     bInterval<0>
   >
 > Configuration_Descriptor;
+
+constexpr WINUSB_COMPATIBLE_ID_FEATURE_DESCRIPTOR WINUSBCompatibleID =
+{
+  .dwLength         = sizeof(WINUSB_COMPATIBLE_ID_FEATURE_DESCRIPTOR),
+  .bcdVersion       = 0x0100,
+  .wCompatibilityID = 0x0004,
+  .bSections        = 1,
+  .bReserv2         = 1,
+  .IDString         = "WINUSB\0"
+};

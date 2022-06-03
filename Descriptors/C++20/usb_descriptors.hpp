@@ -1,9 +1,8 @@
 #pragma once
 
 #include <stdint.h>
-#include <type_traits>
-#include <utility>
 #include <algorithm>
+#include "TypeList.hpp"
 
 enum class DescriptorType : uint8_t
 {
@@ -36,12 +35,6 @@ inline constexpr struct __attribute__((__packed__))          \
   char16_t Text[std::size(text)];                            \
 } name = { idx, sizeof(text), DescriptorType::STRING, text };
 
-
-#if (__cplusplus > 201703L)
-#include "C++20/TypeList.hpp"
-#else
-#include "C++17/TypeList.h"
-#endif  
 
 namespace USB_DESCRIPTORS
 {
@@ -95,8 +88,6 @@ class ENDPOINT_ADDRES_BASE {};
 //==============================================================================
 // Определение полей дескрипторов
 //==============================================================================
-#if (__cplusplus > 201703L)
-
 #define REC_U8(X) template<typename T> concept is_##X = value_unbox<T>() == REC_TYPE::X; \
                   template<uint8_t x> using X = HOLDER<REC_TYPE::X, (uint8_t)x>
 
@@ -105,21 +96,6 @@ class ENDPOINT_ADDRES_BASE {};
 
 #define REC_8(T,X) template<typename U> concept is_##X = value_unbox<U>() == REC_TYPE::X; \
                    template<T x> using X = HOLDER<REC_TYPE::X, (uint8_t)x>
-
-#else
-
-template<typename T, REC_TYPE rt> constexpr bool IsRecType() { return value_unbox<T>()==rt; }    
-
-#define REC_U8(X) template<typename U> constexpr bool is_##X() { return IsRecType<U,REC_TYPE::X>(); } \
-                  template<uint8_t x> using X = HOLDER<REC_TYPE::X,(uint8_t)x>                   
-
-#define REC_U16(X) template<typename T> constexpr bool is_##X() { return IsRecType<T,REC_TYPE::X>(); } \
-                   template<uint16_t x> using X = HOLDER<REC_TYPE::X,uint8_t(x),uint8_t(x>>8)>
-
-#define REC_8(T,X) template<typename U> constexpr bool is_##X() { return IsRecType<U,REC_TYPE::X>(); } \
-                   template<T x> using X = HOLDER<REC_TYPE::X,(uint8_t)x>
-                     
-#endif
 
 // Контейнер для полей дескрипторов
 template <REC_TYPE rt, uint8_t... data>
@@ -193,13 +169,7 @@ REC_U8(bNumDescriptors);
 REC_8(DescriptorType, bDescriptorType_0);
 REC_U16(wDescriptorLength_0);
 
-
-#if (__cplusplus > 201703L)
-#include "C++20/usb_descriptors_types.hpp"
-#include "C++20/usb_hid_report_descriptors_types.hpp"
-#else
-#include "C++17/usb_descriptors_types.h"
-#include "C++17/usb_hid_report_descriptors_types.h"
-#endif
+#include "usb_descriptors_types.hpp"
+#include "usb_hid_report_descriptors_types.hpp"
 
 } // namespace USB_DESCRIPTOR

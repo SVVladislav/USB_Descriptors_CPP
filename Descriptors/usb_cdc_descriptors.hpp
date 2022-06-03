@@ -1,6 +1,10 @@
 #pragma once
 
-#include "usb_descriptors.hpp"
+#if (__cplusplus > 201703L)
+#include "C++20/usb_descriptors.hpp"
+#else
+#include "C++17/usb_descriptors.h"
+#endif 
 
 STRING_DESCRIPTOR( 0, StringLangID,    u"\x0409"                );
 STRING_DESCRIPTOR( 1, StringVendor,    u"STMicroelectronics"    );
@@ -112,6 +116,6 @@ constexpr USB_CLASS_CONFIGURATION_DESCRIPTOR
     wMaxPacketSize<64>,
     bInterval<0> >
 
-> ConfigDescriptor;
+> Configuration_Descriptor;
 
 
