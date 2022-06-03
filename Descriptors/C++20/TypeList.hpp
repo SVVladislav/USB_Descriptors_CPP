@@ -25,11 +25,6 @@ public:
 
   static consteval bool is_empty() { return (sizeof...(Ts) == 0); }
 
-  static consteval auto head() { return head_<Ts...>(); }
-
-  static consteval auto tail() { return tail_<Ts...>(); }
-
-/*
   static consteval auto head()
   {
     return []<typename T, typename... Us>(TypeList<T, Us...>){ return TypeBox<T>{}; }(TypeList<Ts...>{});
@@ -37,9 +32,8 @@ public:
 
   static consteval auto tail()
   {
-      return[]<typename T, typename... Us>(TypeList<T, Us...>) { return TypeList<Us...>{}; }(TypeList<Ts...>{});
+    return[]<typename T, typename... Us>(TypeList<T, Us...>) { return TypeList<Us...>{}; }(TypeList<Ts...>{});
   }
-*/
  
   static consteval auto back() { return (TypeBox<Ts>{}, ...); }
 
@@ -95,13 +89,7 @@ public:
            } (std::make_index_sequence<I>());
   }
   
-private:  
-  template<typename T, typename... Us>
-  static consteval auto head_() { return TypeBox<T>{}; }
-
-  template<typename T, typename... Us>
-  static consteval auto tail_() { return TypeList<Us...>{}; }
-
+private:
   static consteval bool is_unique_(auto func) { return true; }
 
   template <typename T, typename... Us>
