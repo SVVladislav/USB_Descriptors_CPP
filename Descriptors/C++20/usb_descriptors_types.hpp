@@ -6,10 +6,10 @@
 template<typename T> concept is_Descriptor = std::is_base_of_v<DESCRIPTOR_BASE, T>;
 template<typename T> concept is_DescriptorList = std::is_base_of_v<DESCRIPTOR_LIST_BASE, T>;
 template<typename T> concept is_DescriptorListElement = is_Descriptor<T> || is_DescriptorList<T>;
-template<typename T> concept is_Configuration = std::is_base_of_v<CONFIGURATION_DESCRIPTOR_BASE, T>;
-template<typename T> concept is_Config = std::is_base_of_v<CONFIG_DESCRIPTOR_BASE, T>;
-template<typename T> concept is_Interface = std::is_base_of_v<INTERFACE_DESCRIPTOR_BASE, T>;
-template<typename T> concept is_Endpoint = std::is_base_of_v<ENDPOINT_DESCRIPTOR_BASE, T>;
+template<typename T> concept is_ConfigurationDescriptor = std::is_base_of_v<CONFIGURATION_DESCRIPTOR_BASE, T>;
+template<typename T> concept is_Configuration = std::is_base_of_v<CONFIGURATION_BASE, T>;
+template<typename T> concept is_InterfaceDescriptor = std::is_base_of_v<INTERFACE_DESCRIPTOR_BASE, T>;
+template<typename T> concept is_EndpointDescriptor = std::is_base_of_v<ENDPOINT_DESCRIPTOR_BASE, T>;
 template<typename T> concept is_Interface_Association = std::is_base_of_v<INTERFACE_ASSOCIATION_DESCRIPTOR_BASE, T>;
 template<typename T> concept is_CustomHID = std::is_base_of_v<CUSTOM_HID_DESCRIPTOR_BASE, T>;
 // Концепты для полей дескрипторов
@@ -54,13 +54,18 @@ class DESCRIPTOR_LIST : DESCRIPTOR_LIST_BASE
     if constexpr (is_DescriptorList<T>) return T::GetDescriptors();
     else return TypeList<T>{}; // is_Descriptor<T>
   };
+  static constexpr auto dscs_ = TypeList<DSCS...>::accumulate(ExpandDL);
 public:
   constexpr DESCRIPTOR_LIST()
   {
       uint8_t* p = buf;
       (copy_buf(DSCS{}, &p), ...);
   }
-  static constexpr auto GetDescriptors() { return TypeList<DSCS...>::accumulate(ExpandDL); }
+  static constexpr auto GetDescriptors() { return dscs_; }
+  static constexpr auto EndpointCount()
+  {
+  	return dscs_.filter([](auto x) { return is_EndpointDescriptor<TypeUnBox<x>>; }).size();
+  }
 
   uint8_t buf[(sizeof(DSCS::buf) + ...)]{};
 };
@@ -97,11 +102,10 @@ template<is_bcdUSB TbcdUSB,
          is_bDeviceSubClass TbDeviceSubClass,
          is_bDeviceProtocol TbDeviceProtocol,
          is_bMaxPacketSize0 TbMaxPacketSize0,
-         is_bNumConfigurations TbNumConfigurations,
-         is_bReserved TbReserved>
+         is_bNumConfigurations TbNumConfigurations>
 struct DEVICE_QUALIFIER_DESCRIPTOR : public DESCRIPTOR<DescriptorType::DEVICE_QUALIFIER,
   TbcdUSB, TbDeviceClass, TbDeviceSubClass, TbDeviceProtocol, TbMaxPacketSize0,
-  TbNumConfigurations, TbReserved> { };
+  TbNumConfigurations, bReserved<0>> { };
 
 //==============================================================================
 // Configuration Descriptor Type
@@ -166,9 +170,9 @@ template<typename TbConfigurationValue,
          typename TiConfiguration,
          typename TbmAttributes,
          typename TbMaxPower>
-struct CONFIG_DESCRIPTOR : CONFIGURATION_DESCRIPTOR<
+struct CONFIGURATION : CONFIGURATION_DESCRIPTOR<
   wTotalLength<9>, bNumInterfaces<0>, TbConfigurationValue,
-  TiConfiguration, TbmAttributes, TbMaxPower>, CONFIG_DESCRIPTOR_BASE {};
+  TiConfiguration, TbmAttributes, TbMaxPower>, CONFIGURATION_BASE {};
 
 //==============================================================================
 // Interface Descriptor Type
@@ -220,7 +224,7 @@ struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTE
 //==============================================================================
 // Class Configuration Descriptor Type
 //==============================================================================
-template<is_Config CFG, is_DescriptorListElement... DSCS>
+template<is_Configuration CFG, is_DescriptorListElement... DSCS>
 class USB_CLASS_CONFIGURATION_DESCRIPTOR
 {
   static constexpr auto sz = sizeof(CFG::buf) + (sizeof(DSCS::buf) + ... + 0);
@@ -228,7 +232,7 @@ class USB_CLASS_CONFIGURATION_DESCRIPTOR
   static constexpr auto CalcInterfacesNum()
   {
     return DESCRIPTOR_LIST<DSCS...>::GetDescriptors().filter(
-           [](auto x) { return is_Interface<TypeUnBox<x>>; }).size();
+           [](auto x) { return is_InterfaceDescriptor<TypeUnBox<x>>; }).size();
   }
 
   using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
@@ -297,11 +301,11 @@ struct CUSTOM_HID_DESCRIPTOR : public DESCRIPTOR<DescriptorType::HID,
 //==============================================================================
 // Custom HID Configuration Descriptor Type
 //==============================================================================
-template<is_Config CFG,
-         is_Interface Interface,
+template<is_Configuration CFG,
+         is_InterfaceDescriptor Interface,
          is_CustomHID CustomHID,
-         is_Endpoint EP_IN,
-         is_Endpoint EP_OUT>
+         is_EndpointDescriptor EP_IN,
+         is_EndpointDescriptor EP_OUT>
 struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
   CFG, Interface, CustomHID, EP_IN, EP_OUT>
 {
@@ -315,19 +319,19 @@ struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
 //==============================================================================
 // WINUSB Configuration Descriptor Type
 //==============================================================================
-template<is_Config CFG,
-         is_Interface Interface,
-         is_Endpoint EP_IN,
-         is_Endpoint EP_OUT>
+template<is_Configuration CFG,
+         is_InterfaceDescriptor Interface,
+         is_EndpointDescriptor EP_IN,
+         is_EndpointDescriptor EP_OUT>
 struct WINUSB_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
   CFG, Interface, EP_IN, EP_OUT> { };
 
 //==============================================================================
 // MSD Configuration Descriptor Type
 //==============================================================================
-template<is_Config CFG,
-         is_Interface Interface,
-         is_Endpoint EP_IN,
-         is_Endpoint EP_OUT>
+template<is_Configuration CFG,
+         is_InterfaceDescriptor Interface,
+         is_EndpointDescriptor EP_IN,
+         is_EndpointDescriptor EP_OUT>
 struct MSD_CONFIGURATION_DESCRIPTOR : USB_CLASS_CONFIGURATION_DESCRIPTOR<
   CFG, Interface, EP_IN, EP_OUT> { };

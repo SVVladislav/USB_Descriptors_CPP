@@ -48,8 +48,7 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
   bDeviceSubClass<0>,    // Subclass is specified in the interface descriptor
   bDeviceProtocol<0>,    // Protocol is specified in the interface descriptor
   bMaxPacketSize0<64>,
-  bNumConfigurations<1>,
-  bReserved<0>
+  bNumConfigurations<1>
 > Device_Qualifier_Descriptor;
 
 
@@ -57,31 +56,30 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
 // MSD Configuration Descriptor
 //==============================================================================
 constexpr MSD_CONFIGURATION_DESCRIPTOR
-< CONFIG_DESCRIPTOR
-  < bConfigurationValue<1>,               // Configuration 1
+< CONFIGURATION<
+    bConfigurationValue<1>,               // Configuration 1
     iConfiguration<0>,                    // No String Descriptor
     bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
-    bMaxPower<100/2>                      // 100 mA
-  >,
-  INTERFACE_DESCRIPTOR      // Interface 0
-  < bInterfaceNumber<0>,
+    bMaxPower<100/2> >,                   // 100 mA
+  
+  INTERFACE_DESCRIPTOR<       // Interface 0
+    bInterfaceNumber<0>,
     bAlternateSetting<0>,
     bNumEndpoints<2>,
     bInterfaceClass<8>,        // MSC Class
     bInterfaceSubClass<6>,     // SCSI transparent
     bInterfaceProtocol<0x50>,  // BULK-ONLY transport
-    iInterface<0>              // No String Descriptor
-  >,
-  ENDPOINT_DESCRIPTOR    // EP1 IN Bulk EndPoint
-  < bEndpointAddress<1,epDIR::IN>,
+    iInterface<0> >,           // No String Descriptor
+  
+  ENDPOINT_DESCRIPTOR<    // EP1 IN Bulk EndPoint
+    bEndpointAddress<1,epDIR::IN>,
     bmAttributes<epTYPE::Bulk>,
     wMaxPacketSize<64>,
-    bInterval<0>
-  >,
-  ENDPOINT_DESCRIPTOR    // EP1 OUT Bulk EndPoint
-  < bEndpointAddress<1,epDIR::OUT>,
+    bInterval<0> >,
+  
+  ENDPOINT_DESCRIPTOR<    // EP1 OUT Bulk EndPoint
+    bEndpointAddress<1,epDIR::OUT>,
     bmAttributes<epTYPE::Bulk>,
     wMaxPacketSize<64>,
-    bInterval<0>
-  >
+    bInterval<0> >
 > Configuration_Descriptor;

@@ -48,8 +48,7 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
   bDeviceSubClass<0>,    // Subclass is specified in the interface descriptor
   bDeviceProtocol<0>,    // Protocol is specified in the interface descriptor
   bMaxPacketSize0<64>,
-  bNumConfigurations<1>,
-  bReserved<0>
+  bNumConfigurations<1>
 > Device_Qualifier_Descriptor;
 
 //==============================================================================
@@ -108,38 +107,37 @@ constexpr HID_REPORT_DESCRIPTOR<
 // HID Configuration Descriptor
 //==============================================================================
 constexpr CUSOM_HID_CONFIGURATION_DESCRIPTOR
-< CONFIG_DESCRIPTOR
-  < bConfigurationValue<1>,            // configuration 1
-    iConfiguration<0>,                 // No String Descriptor
+< CONFIGURATION<
+    bConfigurationValue<1>,               // configuration 1
+    iConfiguration<0>,                    // No String Descriptor
     bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
-    bMaxPower<100/2>                   // 100 mA
-  >,
-  INTERFACE_DESCRIPTOR      // Interface 0 - CUSTOM HID
-  < bInterfaceNumber<0>,
+    bMaxPower<100/2> >,                   // 100 mA
+  
+  INTERFACE_DESCRIPTOR <    // Interface 0 - CUSTOM HID
+   bInterfaceNumber<0>,
     bAlternateSetting<0>,
     bNumEndpoints<2>,
     bInterfaceClass<3>,     // Custom HID
     bInterfaceSubClass<0>,  // 1=BOOT, 0=no boot
     bInterfaceProtocol<0>,  // 0=none, 1=keyboard, 2=mouse
-    iInterface<0>
-  >,
-  CUSTOM_HID_DESCRIPTOR
-  < bcdHID<0x01'11>,                                 // HID Version ( 1.11 )
-    bCountryCode<HID_Localization::Not_Localized>,   // HID_Localization::Not_Localized,
-    bNumDescriptors<1>,                              // Количество дескрипторов в классе
+    iInterface<0> >,
+  
+  CUSTOM_HID_DESCRIPTOR<
+    bcdHID<0x01'11>,                                   // HID Version ( 1.11 )
+    bCountryCode<HID_Localization::Not_Localized>,     // HID_Localization::Not_Localized,
+    bNumDescriptors<1>,                                // Количество дескрипторов в классе
     bDescriptorType_0<DescriptorType::REPORT>,
-    wDescriptorLength_0<sizeof(HidReportDescriptor)> // Длина Report Descriptor
-  >,
-  ENDPOINT_DESCRIPTOR    // EP1 IN Interrupt EndPoint
-  < bEndpointAddress<1,epDIR::IN>,
+    wDescriptorLength_0<sizeof(HidReportDescriptor)> >,// Длина Report Descriptor
+  
+  ENDPOINT_DESCRIPTOR<    // EP1 IN Interrupt EndPoint
+    bEndpointAddress<1,epDIR::IN>,
     bmAttributes<epTYPE::Interrupt>,
     wMaxPacketSize<2>,
-    bInterval<20>
-  >,
-  ENDPOINT_DESCRIPTOR    // EP1 OUT Interrupt EndPoint
-  < bEndpointAddress<1,epDIR::OUT>,
+    bInterval<20> >,
+  
+  ENDPOINT_DESCRIPTOR<    // EP1 OUT Interrupt EndPoint
+    bEndpointAddress<1,epDIR::OUT>,
     bmAttributes<epTYPE::Interrupt>,
     wMaxPacketSize<2>,
-    bInterval<0>
-  >
+    bInterval<0> >  
 > Configuration_Descriptor;

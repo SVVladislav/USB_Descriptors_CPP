@@ -48,15 +48,14 @@ constexpr DEVICE_QUALIFIER_DESCRIPTOR
   bDeviceSubClass<2>,    //
   bDeviceProtocol<0>,    // No class specific protocol required
   bMaxPacketSize0<64>,
-  bNumConfigurations<0>,
-  bReserved<0>
+  bNumConfigurations<0>
 > Device_Qualifier_Descriptor;
 
 //==============================================================================
 // CDC VCP Configuration Descriptor
 //==============================================================================
 constexpr USB_CLASS_CONFIGURATION_DESCRIPTOR
-< CONFIG_DESCRIPTOR<
+< CONFIGURATION<
     bConfigurationValue<1>,                 // configuration 1
     iConfiguration<0>,                      // No String Descriptor
     bmAttributes<cfg_Attr::SelfPowered>,    // Self powered
