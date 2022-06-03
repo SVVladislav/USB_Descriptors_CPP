@@ -32,7 +32,7 @@ template<typename T> constexpr bool is_Interface_Association()
 // Контейнер для дескриптора
 //==============================================================================
 template<DescriptorType dt, typename... RCRDS>
-class DESCRIPTOR : DESCRIPTOR_BASE
+class DESCRIPTOR : public DESCRIPTOR_BASE
 {
   static constexpr auto sz = (sizeof(RCRDS::buf)+...)+2;
 public:
@@ -50,7 +50,7 @@ public:
 // Контейнер для списка дескрипторов
 //==============================================================================
 template <typename... DSCS>
-class DESCRIPTOR_LIST : DESCRIPTOR_LIST_BASE
+class DESCRIPTOR_LIST : public DESCRIPTOR_LIST_BASE
 {
   static_assert((is_DescriptorListElement<DSCS>()&&...),
                 "DSCS is't Descriptor List Element");
@@ -140,7 +140,7 @@ struct DEVICE_QUALIFIER_DESCRIPTOR : public DESCRIPTOR<DescriptorType::DEVICE_QU
 //==============================================================================
 // Configuration Descriptor Types
 //==============================================================================
-template<auto... args> class bmAttributes : BMATTRIBUTES_BASE
+template<auto... args> class bmAttributes : public BMATTRIBUTES_BASE
 {
   static_assert((sizeof...(args)>0)&&(sizeof...(args)<4),"Wrong bmAttributes arguments");
 
@@ -300,7 +300,7 @@ public:
 // Endpoint Descriptor Type
 //==============================================================================
 template <uint8_t number, epDIR dir>
-class bEndpointAddress : ENDPOINT_ADDRES_BASE
+class bEndpointAddress : public ENDPOINT_ADDRES_BASE
 {
   static_assert(number<16, "Endpoint number: Bit 3...0");
   static constexpr uint8_t value = (uint8_t)dir + number;
@@ -350,7 +350,7 @@ struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTE
 template<typename TbDescriptorSubType,
          typename TbcdCDC>
 struct CDC_HEADER_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
-  TbDescriptorSubType, TbcdCDC>, CDC_HEADER_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
+  TbDescriptorSubType, TbcdCDC>, CDC_HEADER_FUNCTIONAL_DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bDescriptorSubType record");
   static_assert(is_bcdCDC<TbcdCDC>(), "Not bcdCDC record");
@@ -362,7 +362,7 @@ struct CDC_HEADER_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_I
 template<typename TbDescriptorSubType,
          typename TbmCapabilities>
 struct CDC_ACM_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
-  TbDescriptorSubType, TbmCapabilities>, CDC_ACM_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
+  TbDescriptorSubType, TbmCapabilities>, CDC_ACM_FUNCTIONAL_DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bFirstInterface record");
   static_assert(is_bmCapabilities<TbmCapabilities>(), "Not bmCapabilities record");
@@ -376,7 +376,7 @@ template<typename TbDescriptorSubType,
          typename TbSubordinateInterface0>
 struct CDC_UNION_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
   TbDescriptorSubType, TbControlInterface, TbSubordinateInterface0>, 
-  CDC_UNION_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
+  CDC_UNION_FUNCTIONAL_DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bFirstInterface record");
   static_assert(is_bControlInterface<TbControlInterface>(), "Not bControlInterface record");
@@ -391,7 +391,7 @@ template<typename TbDescriptorSubType,
          typename TbDataInterface>
 struct CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
   TbDescriptorSubType, TbmCapabilities,
-  TbDataInterface>, CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
+  TbDataInterface>, CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bFirstInterface record");
   static_assert(is_bmCapabilities<TbmCapabilities>(), "Not bmCapabilities record");
