@@ -1,6 +1,12 @@
 #include <stdio.h>
 
+#define CUSTOM_HID
+
+#ifdef CUSTOM_HID
+#include "Descriptors/usb_hid_descriptors.hpp"
+#else
 #include "Descriptors/usb_cdc_descriptors.hpp"
+#endif
 
 int main()
 {
@@ -11,6 +17,12 @@ int main()
   printf("\nConfiguration descriptor %i bytes:\n", sizeof(ConfigDescriptor));
   for(auto &x : ConfigDescriptor.buf) 
     printf("%.2X ", x);
+
+#ifdef CUSTOM_HID
+    printf("\nHID Report descriptor %i bytes:\n", sizeof(HidReportDescriptor));
+  for(auto &x : HidReportDescriptor.buf) 
+    printf("%.2X ", x);
+#endif
   
   return 0;
 }
