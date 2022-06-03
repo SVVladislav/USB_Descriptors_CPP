@@ -60,60 +60,59 @@ constexpr DEVICE_CONFIGURATION_DESCRIPTOR
     bmAttributes<cfg_Attr::SelfPowered>,  // Self powered
     bMaxPower<100/2>,                     // 100 mA
 
-  INTERFACE_DESCRIPTOR<     // Interface 0 - CDC Communication
-    bInterfaceNumber<0>,
+  INTERFACE     // Interface 0 - CDC Communication
+  < bInterfaceNumber<0>,
     bAlternateSetting<0>,
-    bNumEndpoints<1>,
     bInterfaceClass<2>,     // Communications and CDC Control
     bInterfaceSubClass<2>,  // Abstract Control Model
     bInterfaceProtocol<1>,  // AT Commands defined by ITU-T V.250 etc
-    iInterface<0> >,
+    iInterface<0>,
 
-  CDC_HEADER_FUNCTIONAL_DESCRIPTOR<
-    bDescriptorSubType<0>,    // Header Functional Descriptor
-    bcdCDC<0x01'10> >,        // CDC Version 1.10
+    CDC_HEADER_FUNCTIONAL_DESCRIPTOR
+    < bDescriptorSubType<0>,    // Header Functional Descriptor
+      bcdCDC<0x01'10> >,        // CDC Version 1.10
 
-  CDC_ACM_FUNCTIONAL_DESCRIPTOR<
-    bDescriptorSubType<2>, // Abstract Control Management Functional Descriptor
-    bmCapabilities<2> >,   //
+    CDC_ACM_FUNCTIONAL_DESCRIPTOR
+    < bDescriptorSubType<2>, // Abstract Control Management Functional Descriptor
+      bmCapabilities<2> >,   //
 
-  CDC_UNION_FUNCTIONAL_DESCRIPTOR<
-    bDescriptorSubType<6>,       // Union Functional Descriptor
-    bControlInterface<0>,        // Interface 0  -
-    bSubordinateInterface0<1> >, // Interface 1  -  Data Class Interface
+    CDC_UNION_FUNCTIONAL_DESCRIPTOR
+    < bDescriptorSubType<6>,       // Union Functional Descriptor
+      bControlInterface<0>,        // Interface 0  -
+      bSubordinateInterface0<1> >, // Interface 1  -  Data Class Interface
 
-  CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR<
-    bDescriptorSubType<1>,     // Call Management Functional Descriptor
-    bmCapabilities<0>,
-    bDataInterface<1> >,       //
+    CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR
+    < bDescriptorSubType<1>,     // Call Management Functional Descriptor
+      bmCapabilities<0>,
+      bDataInterface<1> >,       //
 
-  ENDPOINT_DESCRIPTOR<      // EP2 In Interrupt EndPoint
-    bEndpointAddress<2, epDIR::IN>,
-    bmAttributes<epTYPE::Interrupt>,
-    wMaxPacketSize<8>,
-    bInterval<255> >,
-
-  INTERFACE_DESCRIPTOR<     // Interface 1 - Data Interface
-    bInterfaceNumber<1>,
+    ENDPOINT_DESCRIPTOR      // EP2 In Interrupt EndPoint
+    < bEndpointAddress<2, epDIR::IN>,
+      bmAttributes<epTYPE::Interrupt>,
+      wMaxPacketSize<8>,
+      bInterval<255> >
+  >,
+    
+  INTERFACE                // Interface 1 - Data Interface
+  < bInterfaceNumber<1>,
     bAlternateSetting<0>,
-    bNumEndpoints<2>,
     bInterfaceClass<0x0A>, // CDC-Data
     bInterfaceSubClass<0>,
     bInterfaceProtocol<0>,
-    iInterface<0> >,
+    iInterface<0>,
 
-  ENDPOINT_DESCRIPTOR<    // EP1 OUT Bulk EndPoint
-    bEndpointAddress<1, epDIR::OUT>,
-    bmAttributes<epTYPE::Bulk>,
-    wMaxPacketSize<64>,
-    bInterval<0> >,
+    ENDPOINT_DESCRIPTOR<    // EP1 OUT Bulk EndPoint
+      bEndpointAddress<1, epDIR::OUT>,
+      bmAttributes<epTYPE::Bulk>,
+      wMaxPacketSize<64>,
+      bInterval<0> >,
 
-  ENDPOINT_DESCRIPTOR<    // EP1 IN Bulk EndPoint
-    bEndpointAddress<1, epDIR::IN>,
-    bmAttributes<epTYPE::Bulk>,
-    wMaxPacketSize<64>,
-    bInterval<0> >
-
+    ENDPOINT_DESCRIPTOR<    // EP1 IN Bulk EndPoint
+      bEndpointAddress<1, epDIR::IN>,
+      bmAttributes<epTYPE::Bulk>,
+      wMaxPacketSize<64>,
+      bInterval<0> >
+  >
 > Configuration_Descriptor;
 
 

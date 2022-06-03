@@ -11,6 +11,7 @@ template<typename T> concept is_InterfaceDescriptor = std::is_base_of_v<INTERFAC
 template<typename T> concept is_EndpointDescriptor = std::is_base_of_v<ENDPOINT_DESCRIPTOR_BASE, T>;
 template<typename T> concept is_Interface_Association = std::is_base_of_v<INTERFACE_ASSOCIATION_DESCRIPTOR_BASE, T>;
 template<typename T> concept is_CustomHID = std::is_base_of_v<CUSTOM_HID_DESCRIPTOR_BASE, T>;
+template<typename T> concept Is_Interface = std::is_base_of_v<INTERFACE_BASE, T>;
 // Концепты для полей дескрипторов
 template<typename T> concept is_bmAttributes = std::is_base_of_v<BMATTRIBUTES_BASE, T>;
 template<typename T> concept is_bmAttributes_EP = is_bmAttributes<T> && std::is_same_v<typename T::sub_type, epTYPE>;
@@ -61,11 +62,14 @@ public:
       (copy_buf(DSCS{}, &p), ...);
   }
   static constexpr auto GetDescriptors() { return dscs_; }
-  static constexpr auto EndpointCount()
+  static constexpr auto EndpointsCount()
   {
   	return dscs_.filter([](auto x) { return is_EndpointDescriptor<TypeUnBox<x>>; }).size();
   }
-
+  static constexpr auto InterfacesCount()
+  {
+      return dscs_.filter([](auto x) { return is_InterfaceDescriptor<TypeUnBox<x>>; }).size();
+  }
   uint8_t buf[(sizeof(DSCS::buf) + ...)]{};
 };
 
@@ -234,6 +238,40 @@ struct ENDPOINT_DESCRIPTOR : public DESCRIPTOR<DescriptorType::ENDPOINT,
   TbEndpointAddress, TbmAttributes, TwMaxPacketSize, TbInterval>, ENDPOINT_DESCRIPTOR_BASE { };
 
 //==============================================================================
+// Interface Type
+//==============================================================================
+template<is_bInterfaceNumber TbInterfaceNumber,
+         is_bAlternateSetting TbAlternateSetting,
+         is_bInterfaceClass TbInterfaceClass,
+         is_bInterfaceSubClass TbInterfaceSubClass,
+         is_bInterfaceProtocol TbInterfaceProtocol,
+         is_iInterface TiInterface,
+         is_DescriptorListElement...DSCS>
+class INTERFACE : public DESCRIPTOR_LIST<
+    INTERFACE_DESCRIPTOR<TbInterfaceNumber, TbAlternateSetting, bNumEndpoints<0>,
+    TbInterfaceClass, TbInterfaceSubClass, TbInterfaceProtocol,
+    TiInterface>, DSCS...>, INTERFACE_BASE
+{
+    static constexpr auto sz = (sizeof(DSCS::buf) + ... + 9);
+
+    using IF_DESCR = INTERFACE_DESCRIPTOR < TbInterfaceNumber,
+        TbAlternateSetting,
+        bNumEndpoints < DESCRIPTOR_LIST<DSCS...>{}.EndpointsCount() > ,
+        TbInterfaceClass,
+        TbInterfaceSubClass,
+        TbInterfaceProtocol,
+        TiInterface > ;
+public:
+    constexpr INTERFACE()
+    {
+        uint8_t* p = buf;
+        copy_buf(IF_DESCR{}, &p);
+        (copy_buf(DSCS{}, &p), ...);
+    }
+    uint8_t buf[sz]{};
+};
+
+//==============================================================================
 // Interface Association Descriptor Type
 //==============================================================================
 template<is_bFirstInterface TbFirstInterface,
@@ -315,6 +353,7 @@ struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
     }
 };
 
+/*
 //==============================================================================
 // WINUSB Configuration Descriptor Type
 //==============================================================================
@@ -342,3 +381,4 @@ template<is_bConfigurationValue TbConfigurationValue,
 struct MSD_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
   TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
   Interface, EP_IN, EP_OUT> { };
+  */

@@ -72,6 +72,7 @@ enum class REC_TYPE
 // Базовые классы для дескрипторов
 class DESCRIPTOR_BASE {};
 class DESCRIPTOR_LIST_BASE {};
+class INTERFACE_BASE {};
 class CONFIGURATION_DESCRIPTOR_BASE {};
 class INTERFACE_DESCRIPTOR_BASE {};
 class ENDPOINT_DESCRIPTOR_BASE {};

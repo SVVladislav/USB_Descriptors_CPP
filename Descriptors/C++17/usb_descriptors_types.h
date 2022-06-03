@@ -3,6 +3,7 @@
 // "Концепты" типов дескрипторов
 template<typename T> constexpr bool is_Descriptor() { return std::is_base_of_v<DESCRIPTOR_BASE, T>; }
 template<typename T> constexpr bool is_DescriptorList() { return std::is_base_of_v<DESCRIPTOR_LIST_BASE, T>; }
+template<typename T> constexpr bool is_Interface() { return std::is_base_of_v<INTERFACE_BASE, T>; }
 template<typename T> constexpr bool is_DescriptorListElement() { return is_Descriptor<T>() || is_DescriptorList<T>(); }
 template<typename T> constexpr bool is_ConfigurationDescriptor() { return std::is_base_of_v<CONFIGURATION_DESCRIPTOR_BASE,T>; }
 template<typename T> constexpr bool is_InterfaceDescriptor() { return std::is_base_of_v<INTERFACE_DESCRIPTOR_BASE,T>; }
@@ -67,9 +68,13 @@ public:
     (copy_buf(DSCS{}, &p),...);
   }
   static constexpr auto GetDescriptors() { return dscs_; }
-  static constexpr auto EndpointCount()
+  static constexpr uint8_t EndpointsCount()
   {
     return dscs_.filter([](auto x) { return is_EndpointDescriptor<type_unbox<decltype(x)>>(); }).size();
+  }
+  static constexpr uint8_t InterfacesCount()
+  {
+    return dscs_.filter([](auto x) { return is_InterfaceDescriptor<type_unbox<decltype(x)>>(); }).size();
   }
   uint8_t buf[(sizeof(DSCS::buf)+...)]{};
 };
@@ -216,14 +221,8 @@ class DEVICE_CONFIGURATION_DESCRIPTOR
 
   static constexpr auto sz = (sizeof(DSCS::buf)+...+9);
 
-  static constexpr auto CalcInterfacesNum()
-  {
-    return DESCRIPTOR_LIST<DSCS...>::GetDescriptors().filter(
-           [](auto x) { return is_InterfaceDescriptor<type_unbox<decltype(x)>>(); } ).size();
-  }
-
   using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
-                                             bNumInterfaces<CalcInterfacesNum()>,
+                                             bNumInterfaces<DESCRIPTOR_LIST<DSCS...>{}.InterfacesCount()>,
                                              TbConfigurationValue,
                                              TiConfiguration,
                                              TbmAttributes,
@@ -259,6 +258,42 @@ struct INTERFACE_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTERFACE,
   static_assert(is_bInterfaceSubClass<TbInterfaceSubClass>(),"Not bInterfaceSubClass record");
   static_assert(is_bInterfaceProtocol<TbInterfaceProtocol>(),"Not bInterfaceProtocol record");
   static_assert(is_iInterface<TiInterface>(),                "Not iInterface record");
+};
+
+//==============================================================================
+// Interface Type
+//==============================================================================
+template<typename TbInterfaceNumber,
+         typename TbAlternateSetting,
+         typename TbInterfaceClass,
+         typename TbInterfaceSubClass,
+         typename TbInterfaceProtocol,
+         typename TiInterface,
+         typename...DSCS>
+class INTERFACE : public DESCRIPTOR_LIST<
+   INTERFACE_DESCRIPTOR<TbInterfaceNumber, TbAlternateSetting, bNumEndpoints<0>, 
+                        TbInterfaceClass, TbInterfaceSubClass, TbInterfaceProtocol, 
+                        TiInterface>, DSCS...>, INTERFACE_BASE
+{
+  static_assert((is_DescriptorListElement<DSCS>()&&...), "DSCS not Descriptor List Element");
+
+  static constexpr auto sz = (sizeof(DSCS::buf)+...+9);
+  
+  using IF_DESCR = INTERFACE_DESCRIPTOR<TbInterfaceNumber,
+                                        TbAlternateSetting,
+                                        bNumEndpoints<DESCRIPTOR_LIST<DSCS...>{}.EndpointsCount()>,
+                                        TbInterfaceClass,
+                                        TbInterfaceSubClass,
+                                        TbInterfaceProtocol,
+                                        TiInterface>;
+public:  
+  constexpr INTERFACE()
+  {
+    uint8_t *p = buf;
+    copy_buf(IF_DESCR{}, &p);
+    (copy_buf(DSCS{}, &p),...);
+  }
+  uint8_t buf[sz]{};
 };
 
 //==============================================================================
@@ -315,7 +350,7 @@ struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTE
 template<typename TbDescriptorSubType,
          typename TbcdCDC>
 struct CDC_HEADER_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
-  TbDescriptorSubType, TbcdCDC>, CDC_HEADER_FUNCTIONAL_DESCRIPTOR_BASE
+  TbDescriptorSubType, TbcdCDC>, CDC_HEADER_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bDescriptorSubType record");
   static_assert(is_bcdCDC<TbcdCDC>(), "Not bcdCDC record");
@@ -327,7 +362,7 @@ struct CDC_HEADER_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_I
 template<typename TbDescriptorSubType,
          typename TbmCapabilities>
 struct CDC_ACM_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
-  TbDescriptorSubType, TbmCapabilities>, CDC_ACM_FUNCTIONAL_DESCRIPTOR_BASE
+  TbDescriptorSubType, TbmCapabilities>, CDC_ACM_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bFirstInterface record");
   static_assert(is_bmCapabilities<TbmCapabilities>(), "Not bmCapabilities record");
@@ -340,7 +375,8 @@ template<typename TbDescriptorSubType,
          typename TbControlInterface,
          typename TbSubordinateInterface0>
 struct CDC_UNION_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
-  TbDescriptorSubType, TbControlInterface, TbSubordinateInterface0>, CDC_UNION_FUNCTIONAL_DESCRIPTOR_BASE
+  TbDescriptorSubType, TbControlInterface, TbSubordinateInterface0>, 
+  CDC_UNION_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bFirstInterface record");
   static_assert(is_bControlInterface<TbControlInterface>(), "Not bControlInterface record");
@@ -355,7 +391,7 @@ template<typename TbDescriptorSubType,
          typename TbDataInterface>
 struct CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR : public DESCRIPTOR<DescriptorType::CS_INTERFACE,
   TbDescriptorSubType, TbmCapabilities,
-  TbDataInterface>, CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR_BASE
+  TbDataInterface>, CDC_CALL_MANAGEMENT_FUNCTIONAL_DESCRIPTOR_BASE, DESCRIPTOR_BASE
 {
   static_assert(is_bDescriptorSubType<TbDescriptorSubType>(), "Not bFirstInterface record");
   static_assert(is_bmCapabilities<TbmCapabilities>(), "Not bmCapabilities record");
@@ -407,40 +443,4 @@ struct CUSOM_HID_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
   {
     return config_descriptor + 9 + sizeof(Interface);
   }
-};
-
-//==============================================================================
-// WINUSB Configuration Descriptor Type
-//==============================================================================
-template<typename TbConfigurationValue,
-         typename TiConfiguration,
-         typename TbmAttributes,
-         typename TbMaxPower,
-         typename Interface,
-         typename EP_IN,
-         typename EP_OUT>
-struct WINUSB_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
-  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
-  Interface, EP_IN, EP_OUT>
-{
-  static_assert(is_InterfaceDescriptor<Interface>(), "Not Interface Descriptor");
-  static_assert(is_EndpointDescriptor<EP_IN>() && is_EndpointDescriptor<EP_OUT>(), "Not Endpoint Descriptor");
-};
-
-//==============================================================================
-// MSD Configuration Descriptor Type
-//==============================================================================
-template<typename TbConfigurationValue,
-         typename TiConfiguration,
-         typename TbmAttributes,
-         typename TbMaxPower,
-         typename Interface,
-         typename EP_IN,
-         typename EP_OUT>
-struct MSD_CONFIGURATION_DESCRIPTOR : DEVICE_CONFIGURATION_DESCRIPTOR<
-  TbConfigurationValue, TiConfiguration, TbmAttributes, TbMaxPower,
-  Interface, EP_IN, EP_OUT>
-{
-  static_assert(is_InterfaceDescriptor<Interface>(), "Not Interface Descriptor");
-  static_assert(is_EndpointDescriptor<EP_IN>() && is_EndpointDescriptor<EP_OUT>(), "Not Endpoint Descriptor");
 };
