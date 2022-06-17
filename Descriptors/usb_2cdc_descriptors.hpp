@@ -65,8 +65,8 @@ using VCP = INTERFACE_ASSOCIATION
     bFunctionProtocol<0>,
     iFunction<0>,
 
-    INTERFACE     // Interface 0 - CDC Communication
-      < bInterfaceNumber<first_if>,
+    INTERFACE     // Interface - CDC Communication
+    < bInterfaceNumber<first_if>,
       bAlternateSetting<0>,
       bInterfaceClass<2>,     // Communications and CDC Control
       bInterfaceSubClass<2>,  // Abstract Control Model
@@ -91,14 +91,14 @@ using VCP = INTERFACE_ASSOCIATION
         bmCapabilities<0>,
         bDataInterface<1> >,       //
 
-      ENDPOINT_DESCRIPTOR      // EP2 In Interrupt EndPoint
+      ENDPOINT_DESCRIPTOR      // EP - In Interrupt EndPoint
       < bEndpointAddress<ctrl_ep_num, epDIR::IN>,
         bmAttributes<epTYPE::Interrupt>,
         wMaxPacketSize<8>,
         bInterval<255> >
     >,
 
-    INTERFACE                // Interface 1 - Data Interface
+    INTERFACE                // Interface - Data Interface
     < bInterfaceNumber<first_if+1>,
       bAlternateSetting<0>,
       bInterfaceClass<0x0A>, // CDC-Data
@@ -106,13 +106,13 @@ using VCP = INTERFACE_ASSOCIATION
       bInterfaceProtocol<0>,
       iInterface<0>,
 
-      ENDPOINT_DESCRIPTOR<    // EP1 OUT Bulk EndPoint
+      ENDPOINT_DESCRIPTOR<    // EP - OUT Bulk EndPoint
         bEndpointAddress<data_ep_num, epDIR::OUT>,
         bmAttributes<epTYPE::Bulk>,
         wMaxPacketSize<64>,
         bInterval<0> >,
 
-      ENDPOINT_DESCRIPTOR<    // EP1 IN Bulk EndPoint
+      ENDPOINT_DESCRIPTOR<    // EP - IN Bulk EndPoint
         bEndpointAddress<data_ep_num, epDIR::IN>,
         bmAttributes<epTYPE::Bulk>,
         wMaxPacketSize<64>,
