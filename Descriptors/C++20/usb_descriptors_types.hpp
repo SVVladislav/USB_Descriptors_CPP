@@ -62,13 +62,21 @@ public:
       (copy_buf(DSCS{}, &p), ...);
   }
   static constexpr auto GetDescriptors() { return dscs_; }
+  static constexpr auto GetEndpoints()
+  {
+      return dscs_.filter([](auto x) { return is_EndpointDescriptor<TypeUnBox<x>>; });
+  }
+  static constexpr auto GetInterfaces()
+  {
+      return dscs_.filter([](auto x) { return is_InterfaceDescriptor<TypeUnBox<x>>; });
+  }
   static constexpr auto EndpointsCount()
   {
-  	return dscs_.filter([](auto x) { return is_EndpointDescriptor<TypeUnBox<x>>; }).size();
+  	return GetEndpoints().size();
   }
   static constexpr auto InterfacesCount()
   {
-      return dscs_.filter([](auto x) { return is_InterfaceDescriptor<TypeUnBox<x>>; }).size();
+      return GetInterfaces().size();
   }
   uint8_t buf[(sizeof(DSCS::buf) + ...)]{};
 };
@@ -93,7 +101,7 @@ class DEVICE_DESCRIPTOR : public DESCRIPTOR< DescriptorType::DEVICE,
   TbMaxPacketSize0, TidVendor, TidProduct, TbcdDevice, TiManufacturer,
   TiProduct, TiSerialNumber, TbNumConfigurations > 
 {
-  static constexpr auto ep0sz = TbMaxPacketSize0{}.buf[0];
+  static constexpr auto ep0sz = TbMaxPacketSize0{}.value();
   static_assert((ep0sz == 8) || (ep0sz == 16) || (ep0sz == 32) || (ep0sz == 64), "Wrong TbMaxPacketSize0 size");
 };
 
@@ -193,6 +201,12 @@ class DEVICE_CONFIGURATION_DESCRIPTOR
                                              TiConfiguration,
                                              TbmAttributes,
                                              TbMaxPower>;
+
+  static_assert(DESCRIPTOR_LIST<DSCS...>::GetEndpoints().transform(
+                  [](auto eps)
+                  {
+                    return TypeBox<typename TypeUnBox<eps>::bEndpointAddress>{};
+                  }).is_unique(), "Duplicate Endpoints!");
 public:
   constexpr DEVICE_CONFIGURATION_DESCRIPTOR()
   {
@@ -215,7 +229,10 @@ template<is_bInterfaceNumber TbInterfaceNumber,
          is_iInterface TiInterface>
 struct INTERFACE_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTERFACE,
     TbInterfaceNumber, TbAlternateSetting, TbNumEndpoints, TbInterfaceClass,
-    TbInterfaceSubClass, TbInterfaceProtocol, TiInterface>, INTERFACE_DESCRIPTOR_BASE { };
+    TbInterfaceSubClass, TbInterfaceProtocol, TiInterface>, INTERFACE_DESCRIPTOR_BASE 
+{ 
+  using bInterfaceNumber = TbInterfaceNumber;
+};
 
 //==============================================================================
 // Endpoint Descriptor Type
@@ -235,7 +252,10 @@ template<is_bEndpointAddress TbEndpointAddress,
          is_wMaxPacketSize TwMaxPacketSize,
          is_bInterval TbInterval>
 struct ENDPOINT_DESCRIPTOR : public DESCRIPTOR<DescriptorType::ENDPOINT,
-  TbEndpointAddress, TbmAttributes, TwMaxPacketSize, TbInterval>, ENDPOINT_DESCRIPTOR_BASE { };
+  TbEndpointAddress, TbmAttributes, TwMaxPacketSize, TbInterval>, ENDPOINT_DESCRIPTOR_BASE
+{
+  using bEndpointAddress = TbEndpointAddress;
+};
 
 //==============================================================================
 // Interface Type
@@ -285,6 +305,43 @@ struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTE
   TbFunctionSubClass, TbFunctionProtocol, TiFunction> { };
 
 //==============================================================================
+// Interface Association Type
+//==============================================================================
+template<typename TbFunctionClass,
+    typename TbFunctionSubClass,
+    typename TbFunctionProtocol,
+    typename TiFunction,
+    typename... DSCS>
+class INTERFACE_ASSOCIATION : public DESCRIPTOR_LIST<
+    INTERFACE_ASSOCIATION_DESCRIPTOR<bFirstInterface<0>,
+    bInterfaceCount<0>,
+    TbFunctionClass,
+    TbFunctionSubClass,
+    TbFunctionProtocol,
+    TiFunction>, DSCS...>, INTERFACE_ASSOCIATION_BASE
+{
+    static constexpr auto sz = (sizeof(DSCS::buf) + ... + 8);
+    static constexpr auto first_if = typename TypeUnBox<DESCRIPTOR_LIST<DSCS...>::GetInterfaces().head()>::bInterfaceNumber{}.value();
+
+    static constexpr auto if_cnt = DESCRIPTOR_LIST<DSCS...>::InterfacesCount();
+
+    using IA_DESCR = INTERFACE_ASSOCIATION_DESCRIPTOR<bFirstInterface<first_if>,
+        bInterfaceCount<if_cnt>,
+        TbFunctionClass,
+        TbFunctionSubClass,
+        TbFunctionProtocol,
+        TiFunction>;
+public:
+    constexpr INTERFACE_ASSOCIATION()
+    {
+        uint8_t* p = buf;
+        copy_buf(IA_DESCR{}, &p);
+        (copy_buf(DSCS{}, &p), ...);
+    }
+    uint8_t buf[sz]{};
+};
+
+//==============================================================================
 // CDC Header Functional Descriptor Type
 //==============================================================================
 template<is_bDescriptorSubType TbDescriptorSubType,
@@ -330,3 +387,12 @@ template<is_bcdHID TbcdHID,                           // HID Version ( 1.11 )
 struct CUSTOM_HID_DESCRIPTOR : public DESCRIPTOR<DescriptorType::HID,
   TbcdHID, TbCountryCode, TbNumDescriptors,
   TbDescriptorType_0, TwDescriptorLength_0>, CUSTOM_HID_DESCRIPTOR_BASE {};
+
+template <uint8_t ep_num, epDIR ep_dir, auto ep_IRQ>
+struct IRQBox
+{
+  static constexpr auto num = ep_num;
+  static constexpr epDIR dir = ep_dir;
+  static constexpr auto irq = ep_IRQ;
+  static_assert(ep_num < 16, "Wrong ep_num");
+};

@@ -1,29 +1,13 @@
 #pragma once
 
-#ifdef __ICCARM__
-namespace std
+template<typename T>
+struct TypeBox
 {
-
-template< class T >
-inline constexpr bool is_enum_v = is_enum<T>::value;
-
-template< class T, class U >
-inline constexpr bool is_same_v = is_same<T, U>::value;
-
-template< class Base, class Derived >
-inline constexpr bool is_base_of_v = is_base_of<Base, Derived>::value;
-
-template <typename T>
-inline constexpr size_t alignment_of_v = alignment_of<T>::value;
-
-}
-#endif
-
-template<class T>
-struct TypeBox { using type = T; };
+  using type = T;
+};
 
 template<typename T>
-using type_unbox = typename T::type;\
+using type_unbox = typename T::type;
 
 template<auto Value>
 struct ValueBox
@@ -49,6 +33,8 @@ public:
   
   static constexpr auto tail() { return tail_<Ts...>(); }
   
+  static constexpr auto back() { return (TypeBox<Ts>{}, ...); }
+  
   template<typename T>
   static constexpr auto push_front() { return TypeList<T, Ts...>{}; }
 
@@ -66,6 +52,17 @@ public:
 
   template<typename T>
   static constexpr bool contains(TypeBox<T>) { return contains<T>(); }
+   
+  template<typename F>
+  static constexpr bool is_unique(F func) { return is_unique_<F, Ts...>(func); }
+
+  static constexpr bool is_unique()
+  {
+    return is_unique([](auto v1, auto v2) { return std::is_same_v<type_unbox<decltype(v1)>, type_unbox<decltype(v2)>>; });
+  }
+  
+  template<typename F>
+  static constexpr auto accumulate(F func) { return (TypeList<>{} + ... + func(TypeBox<Ts>{})); }
   
   template<typename F>
   static inline void foreach(F func) { (func(TypeBox<Ts> {}), ...); }
@@ -74,8 +71,17 @@ public:
   static constexpr auto generate() { return generate_<T>(std::make_index_sequence<I>{}); }
   
   template<typename F>
-  static constexpr auto accumulate(F func) { return (TypeList<>{} + ... + func(TypeBox<Ts>{})); }
-    
+  static constexpr auto transform(F func) { return TypeList<type_unbox<decltype(func(TypeBox<Ts>{}))>...>{}; }
+  
+  //template<typename T>
+  //static consteval auto filter(auto pred)
+  //{
+  //return (TypeList<>{} + ... + std::conditional_t<pred(TypeBox<T>{}, TypeBox<Ts>{}), TypeList<Ts>, TypeList<>>{});
+  //}
+  
+  //template<typename T>
+  //static consteval auto filter(TypeBox<T> box, auto pred) { return filter<T>(pred); }
+  
   template<typename T>
   static constexpr auto filter(T pred)
   {
@@ -91,20 +97,31 @@ private:
   
   template<typename T, auto... Is>
   static constexpr auto generate_(std::index_sequence<Is...>) { return TypeList<type_unbox<decltype((Is, TypeBox<T>{}))>...>{}; }
+  
+  
+  template<typename F>
+  static constexpr bool is_unique_(F func) { return true; }
+
+  template <typename F, typename T, typename... Us>
+  static constexpr bool is_unique_(F &func)
+  {
+    return !(func(TypeBox<T>{}, TypeBox<Us>{}) || ...) && is_unique_<F, Us...>(func);
+  }
+ 
 };
 
 template<typename... Ts, typename... Us>
-constexpr bool operator ==(TypeList<Ts...>, TypeList<Us...>) { return false; }
+constexpr bool operator == (TypeList<Ts...>, TypeList<Us...>) { return false; }
 
 template<typename... Ts>
-constexpr bool operator ==(TypeList<Ts...>, TypeList<Ts...>) { return true; }
+constexpr bool operator == (TypeList<Ts...>, TypeList<Ts...>) { return true; }
 
 template<typename... Ts, typename... Us>
-constexpr bool operator !=(TypeList<Ts...>, TypeList<Us...>) { return true; }
+constexpr bool operator != (TypeList<Ts...>, TypeList<Us...>) { return true; }
 
 template<typename... Ts>
-constexpr bool operator !=(TypeList<Ts...>, TypeList<Ts...>) { return false; }
+constexpr bool operator != (TypeList<Ts...>, TypeList<Ts...>) { return false; }
 
 template<typename... Ts, typename... Us>
-constexpr auto operator+(TypeList<Ts...>, TypeList<Us...>) { return TypeList<Ts..., Us...> {}; }
+constexpr auto operator + (TypeList<Ts...>, TypeList<Us...>) { return TypeList<Ts..., Us...> {}; }
 

@@ -59,12 +59,23 @@ public:
 
   static consteval bool is_unique()
   {
-    return isUnique([](auto v1, auto v2) { return std::is_same_v<TypeUnBox<v1>, TypeUnBox<v2>>; });
+    return is_unique([](auto v1, auto v2) { return std::is_same_v<TypeUnBox<v1>, TypeUnBox<v2>>; });
   }
 
   static consteval auto accumulate(auto func) { return (TypeList<>{} + ... + func(TypeBox<Ts>{})); }
  
   static inline void foreach(auto func) { (func(TypeBox<Ts> {}), ...); }
+
+  template<auto I, typename T>
+  static consteval auto generate()
+  {
+    return[]<auto... Is>(std::index_sequence<Is...>)
+    {
+      return TypeList < TypeUnBox < (Is, TypeBox<T>{}) > ... > {};
+    } (std::make_index_sequence<I>());
+  }
+
+  static consteval auto transform(auto func) { return TypeList<TypeUnBox<func(TypeBox<Ts>{})>...>{}; }
 
   template<typename T>
   static consteval auto filter(auto pred)
@@ -79,16 +90,7 @@ public:
   {
     return (TypeList<>{} + ... + std::conditional_t<pred(TypeBox<Ts>{}), TypeList<Ts>, TypeList<>>{});
   }
-  
-  template<auto I, typename T>
-  static consteval auto generate()
-  {
-    return []<auto... Is>(std::index_sequence<Is...>)
-           {
-             return TypeList<TypeUnBox<(Is, TypeBox<T>{})>...>{};
-           } (std::make_index_sequence<I>());
-  }
-  
+
 private:
   static consteval bool is_unique_(auto func) { return true; }
 
@@ -100,16 +102,16 @@ private:
 };
 
 template<typename... Ts, typename... Us>
-consteval bool operator ==(TypeList<Ts...>, TypeList<Us...>) { return false; }
+consteval bool operator == (TypeList<Ts...>, TypeList<Us...>) { return false; }
 
 template<typename... Ts>
-consteval bool operator ==(TypeList<Ts...>, TypeList<Ts...>) { return true; }
+consteval bool operator == (TypeList<Ts...>, TypeList<Ts...>) { return true; }
 
 template<typename... Ts, typename... Us>
-consteval bool operator !=(TypeList<Ts...>, TypeList<Us...>) { return true; }
+consteval bool operator != (TypeList<Ts...>, TypeList<Us...>) { return true; }
 
 template<typename... Ts>
-consteval bool operator !=(TypeList<Ts...>, TypeList<Ts...>) { return false; }
+consteval bool operator != (TypeList<Ts...>, TypeList<Ts...>) { return false; }
 
 template<typename... Ts, typename... Us>
-consteval auto operator+(TypeList<Ts...>, TypeList<Us...>) { return TypeList<Ts..., Us...> {}; }
+consteval auto operator + (TypeList<Ts...>, TypeList<Us...>) { return TypeList<Ts..., Us...> {}; }

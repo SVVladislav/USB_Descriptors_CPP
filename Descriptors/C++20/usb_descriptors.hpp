@@ -73,6 +73,7 @@ enum class REC_TYPE
 class DESCRIPTOR_BASE {};
 class DESCRIPTOR_LIST_BASE {};
 class INTERFACE_BASE {};
+class INTERFACE_ASSOCIATION_BASE {};
 class CONFIGURATION_DESCRIPTOR_BASE {};
 class INTERFACE_DESCRIPTOR_BASE {};
 class ENDPOINT_DESCRIPTOR_BASE {};
@@ -102,6 +103,12 @@ template <REC_TYPE rt, uint8_t... data>
 struct HOLDER
 {
     using type = ValueBox<rt>;
+    consteval auto value()
+    {
+        if constexpr (sizeof...(data) == 1) return buf[0];
+        else if constexpr (sizeof...(data) == 2) return (uint16_t)buf[0] + ((uint16_t)buf[1] << 8);
+        else return;
+    }
     uint8_t buf[sizeof...(data)]{ data... };
 };
 
@@ -171,5 +178,21 @@ REC_U16(wDescriptorLength_0);
 
 #include "usb_descriptors_types.hpp"
 #include "usb_hid_report_descriptors_types.hpp"
+
+//==============================================================================
+// WINUSB Compatible ID Feature Descriptor Type
+//==============================================================================
+struct __attribute__((__packed__)) WINUSB_COMPATIBLE_ID_FEATURE_DESCRIPTOR
+{
+  uint32_t  dwLength;
+  uint16_t  bcdVersion;
+  uint16_t  wCompatibilityID;
+  uint8_t   bSections;
+  uint8_t   bReserv1[7];
+  uint8_t   bInterface;
+  uint8_t   bReserv2;
+  char      IDString[8];
+  uint8_t   bReserv3[14];
+};
 
 } // namespace USB_DESCRIPTOR

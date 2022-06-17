@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <stdint.h>
@@ -73,6 +74,7 @@ enum class REC_TYPE
 class DESCRIPTOR_BASE {};
 class DESCRIPTOR_LIST_BASE {};
 class INTERFACE_BASE {};
+class INTERFACE_ASSOCIATION_BASE {};
 class CONFIGURATION_DESCRIPTOR_BASE {};
 class INTERFACE_DESCRIPTOR_BASE {};
 class ENDPOINT_DESCRIPTOR_BASE {};
@@ -103,7 +105,13 @@ template<typename T, REC_TYPE rt> constexpr bool IsRecType() { return value_unbo
 template <REC_TYPE rt, uint8_t... data>
 struct HOLDER
 {
-    using type = ValueBox<rt>;
+    using type = ValueBox<rt>;    
+    constexpr auto value()
+    {
+      if constexpr (sizeof...(data)==1) return buf[0];
+      else if constexpr (sizeof...(data)==2) return (uint16_t)buf[0]+((uint16_t)buf[1]<<8);
+      else return;
+    }
     uint8_t buf[sizeof...(data)]{ data... };
 };
 
@@ -190,4 +198,4 @@ struct __attribute__((__packed__)) WINUSB_COMPATIBLE_ID_FEATURE_DESCRIPTOR
   uint8_t   bReserv3[14];
 };
 
-} // namespace USB_DESCRIPTOR
+} // namespace USB_DESCRIPTORS

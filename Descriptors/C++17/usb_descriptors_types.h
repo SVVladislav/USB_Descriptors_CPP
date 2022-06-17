@@ -68,14 +68,23 @@ public:
     (copy_buf(DSCS{}, &p),...);
   }
   static constexpr auto GetDescriptors() { return dscs_; }
+  static constexpr auto GetEndpoints() 
+  { 
+    return dscs_.filter([](auto x) { return is_EndpointDescriptor<type_unbox<decltype(x)>>(); }); 
+  }
+  static constexpr auto GetInterfaces() 
+  { 
+    return dscs_.filter([](auto x) { return is_InterfaceDescriptor<type_unbox<decltype(x)>>(); }); 
+  }  
   static constexpr uint8_t EndpointsCount()
   {
-    return dscs_.filter([](auto x) { return is_EndpointDescriptor<type_unbox<decltype(x)>>(); }).size();
+    return GetEndpoints().size();
   }
   static constexpr uint8_t InterfacesCount()
   {
-    return dscs_.filter([](auto x) { return is_InterfaceDescriptor<type_unbox<decltype(x)>>(); }).size();
+    return GetInterfaces().size();
   }
+  
   uint8_t buf[(sizeof(DSCS::buf)+...)]{};
 };
 
@@ -111,7 +120,7 @@ class DEVICE_DESCRIPTOR : public DESCRIPTOR<DescriptorType::DEVICE,
   static_assert(is_iProduct<TiProduct>(),               "Not iProduct record");
   static_assert(is_iSerialNumber<TiSerialNumber>(),     "Not iSerialNumber record");
   static_assert(is_bNumConfigurations<TbNumConfigurations>(), "Not bNumConfigurations record");
-  static constexpr auto ep0sz =  TbMaxPacketSize0{}.buf[0];    
+  static constexpr auto ep0sz =  TbMaxPacketSize0{}.value();    
   static_assert( (ep0sz==8)||(ep0sz==16)||(ep0sz==32)||(ep0sz==64),"Wrong TbMaxPacketSize0 size");
   
 };
@@ -222,17 +231,23 @@ class DEVICE_CONFIGURATION_DESCRIPTOR
   static constexpr auto sz = (sizeof(DSCS::buf)+...+9);
 
   using CFG_DESCR = CONFIGURATION_DESCRIPTOR<wTotalLength<sz>,
-                                             bNumInterfaces<DESCRIPTOR_LIST<DSCS...>{}.InterfacesCount()>,
+                                             bNumInterfaces<DESCRIPTOR_LIST<DSCS...>::InterfacesCount()>,
                                              TbConfigurationValue,
                                              TiConfiguration,
                                              TbmAttributes,
                                              TbMaxPower>;
+  
+  static_assert(DESCRIPTOR_LIST<DSCS...>::GetEndpoints().transform(
+                  [](auto eps)
+                  { 
+                    return TypeBox<typename type_unbox<decltype(eps)>::bEndpointAddress>{}; 
+                  }).is_unique(), "Duplicate Endpoints!");      
 public:
   constexpr DEVICE_CONFIGURATION_DESCRIPTOR()
   {
-    uint8_t *p = buf;
+    uint8_t* p = buf;
     copy_buf(CFG_DESCR{}, &p);
-    (copy_buf(DSCS{}, &p),...);
+    (copy_buf(DSCS{}, &p), ...);
   }
   uint8_t buf[sz]{};
 };  
@@ -258,6 +273,8 @@ struct INTERFACE_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTERFACE,
   static_assert(is_bInterfaceSubClass<TbInterfaceSubClass>(),"Not bInterfaceSubClass record");
   static_assert(is_bInterfaceProtocol<TbInterfaceProtocol>(),"Not bInterfaceProtocol record");
   static_assert(is_iInterface<TiInterface>(),                "Not iInterface record");
+  
+  using bInterfaceNumber = TbInterfaceNumber;
 };
 
 //==============================================================================
@@ -281,7 +298,7 @@ class INTERFACE : public DESCRIPTOR_LIST<
   
   using IF_DESCR = INTERFACE_DESCRIPTOR<TbInterfaceNumber,
                                         TbAlternateSetting,
-                                        bNumEndpoints<DESCRIPTOR_LIST<DSCS...>{}.EndpointsCount()>,
+                                        bNumEndpoints<DESCRIPTOR_LIST<DSCS...>::EndpointsCount()>,
                                         TbInterfaceClass,
                                         TbInterfaceSubClass,
                                         TbInterfaceProtocol,
@@ -306,7 +323,7 @@ class bEndpointAddress : public ENDPOINT_ADDRES_BASE
   static constexpr uint8_t value = (uint8_t)dir + number;
 public:
   using type = ValueBox<REC_TYPE::bEndpointAddress>;
-  uint8_t buf[1]{value};
+  uint8_t buf[1]{value};  
 };
 template<typename T> constexpr bool is_bEndpointAddress() { return std::is_base_of_v<ENDPOINT_ADDRES_BASE,T>; }
 
@@ -321,6 +338,9 @@ struct ENDPOINT_DESCRIPTOR : public DESCRIPTOR<DescriptorType::ENDPOINT,
   static_assert(is_bmAttributes_EP<TbmAttributes>(), "Not Endpoint bInterfaceNumber record");
   static_assert(is_wMaxPacketSize<TwMaxPacketSize>(), "Not bInterfaceNumber record");
   static_assert(is_bInterval<TbInterval>(), "Not bInterfaceNumber record");
+  
+  using bEndpointAddress = TbEndpointAddress;
+  
 };
 
 //==============================================================================
@@ -342,6 +362,45 @@ struct INTERFACE_ASSOCIATION_DESCRIPTOR : public DESCRIPTOR<DescriptorType::INTE
   static_assert(is_bFunctionSubClass<TbFunctionSubClass>(), "Not bFunctionSubClass record");
   static_assert(is_bFunctionProtocol<TbFunctionProtocol>(), "Not bFunctionProtocol record");
   static_assert(is_iFunction<TiFunction>(), "Not iFunction record");
+};
+
+//==============================================================================
+// Interface Association Type
+//==============================================================================
+template<typename TbFunctionClass,
+         typename TbFunctionSubClass,
+         typename TbFunctionProtocol,
+         typename TiFunction,
+         typename... DSCS>
+class INTERFACE_ASSOCIATION : public DESCRIPTOR_LIST< 
+  INTERFACE_ASSOCIATION_DESCRIPTOR<bFirstInterface<0>,
+                                   bInterfaceCount<0>,
+                                   TbFunctionClass,
+                                   TbFunctionSubClass,
+                                   TbFunctionProtocol,
+                                   TiFunction>, DSCS...>, INTERFACE_ASSOCIATION_BASE
+{
+  static constexpr auto sz = (sizeof(DSCS::buf)+...+8);  
+  static constexpr auto first_if = typename type_unbox<
+                                                       decltype(DESCRIPTOR_LIST<DSCS...>::GetInterfaces().head())
+                                                      >::bInterfaceNumber{}.value();
+                                               
+  static constexpr auto if_cnt = DESCRIPTOR_LIST<DSCS...>::InterfacesCount();
+  
+  using IA_DESCR = INTERFACE_ASSOCIATION_DESCRIPTOR<bFirstInterface<first_if>,
+                                                    bInterfaceCount<if_cnt>,
+                                                    TbFunctionClass,
+                                                    TbFunctionSubClass,
+                                                    TbFunctionProtocol,
+                                                    TiFunction>;
+public:
+  constexpr INTERFACE_ASSOCIATION()
+  {
+    uint8_t *p = buf;
+    copy_buf(IA_DESCR{}, &p);
+    (copy_buf(DSCS{}, &p),...);
+  }
+  uint8_t buf[sz]{};
 };
 
 //==============================================================================
@@ -417,3 +476,13 @@ struct CUSTOM_HID_DESCRIPTOR : public DESCRIPTOR<DescriptorType::HID,
   static_assert(is_wDescriptorLength_0<TwDescriptorLength_0>(),"Not wDescriptorLength_0 record");
 };
 template<typename T> constexpr bool is_CustomHID() { return std::is_base_of_v<CUSTOM_HID_DESCRIPTOR_BASE,T>; }
+
+template <uint8_t ep_num, epDIR ep_dir, auto ep_IRQ>
+struct IRQBox
+{
+  static constexpr auto num = ep_num;
+  static constexpr epDIR dir = ep_dir;
+  static constexpr auto irq = ep_IRQ;
+  static_assert(ep_num < 16, "Wrong ep_num");
+};
+

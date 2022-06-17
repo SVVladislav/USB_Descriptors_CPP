@@ -2,6 +2,7 @@
 
 #define CUSTOM_HID
 //#define CDC
+//#define CDCx2
 //#define WIN_USB
 //#define MSD
 
@@ -12,6 +13,10 @@
 
 #ifdef CDC
 #include "Descriptors/usb_cdc_descriptors.hpp"
+#endif
+
+#ifdef CDCx2
+#include "Descriptors/usb_2cdc_descriptors.hpp"
 #endif
 
 #ifdef WIN_USB
@@ -40,3 +45,5 @@ int main()
   
   return 0;
 }
+
+extern "C" size_t __write(int handle, const unsigned char *buf, size_t bufSize) { return 0; }
