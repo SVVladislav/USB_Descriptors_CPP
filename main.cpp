@@ -45,5 +45,3 @@ int main()
   
   return 0;
 }
-
-extern "C" size_t __write(int handle, const unsigned char *buf, size_t bufSize) { return 0; }
