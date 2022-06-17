@@ -48,9 +48,9 @@ int main()
     [](auto ep)
     {
 #if (__cplusplus > 201703L)        
-      printf("\nEP = %02X \r", TypeUnBox<ep>::bEndpointAddress::GetEpAddress() );
+      printf("\nEP = %02X \r", TypeUnBox<ep>::GetEpAddress() );
 #else
-      printf("\nEP = %02X \r", type_unbox<decltype(ep)>::bEndpointAddress::GetEpAddress() );
+      printf("\nEP = %02X \r", type_unbox<decltype(ep)>::GetEpAddress() );
 #endif    
     }
   );

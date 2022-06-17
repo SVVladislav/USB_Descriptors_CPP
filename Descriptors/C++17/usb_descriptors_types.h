@@ -348,8 +348,8 @@ struct ENDPOINT_DESCRIPTOR : public DESCRIPTOR<DescriptorType::ENDPOINT,
   static_assert(is_wMaxPacketSize<TwMaxPacketSize>(), "Not bInterfaceNumber record");
   static_assert(is_bInterval<TbInterval>(), "Not bInterfaceNumber record");
   
-  using bEndpointAddress = TbEndpointAddress;
-  
+  using bEndpointAddress = TbEndpointAddress;  
+  static constexpr auto GetEpAddress() { return bEndpointAddress::GetEpAddress(); }
 };
 
 //==============================================================================

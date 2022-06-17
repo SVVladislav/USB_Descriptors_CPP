@@ -263,6 +263,7 @@ struct ENDPOINT_DESCRIPTOR : public DESCRIPTOR<DescriptorType::ENDPOINT,
   TbEndpointAddress, TbmAttributes, TwMaxPacketSize, TbInterval>, ENDPOINT_DESCRIPTOR_BASE
 {
   using bEndpointAddress = TbEndpointAddress;
+  static constexpr auto GetEpAddress() { return bEndpointAddress::GetEpAddress(); }
 };
 
 //==============================================================================
