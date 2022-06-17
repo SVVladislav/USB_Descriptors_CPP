@@ -43,6 +43,18 @@ int main()
     printf("%.2X ", x);
 #endif
   
+  Configuration_Descriptor.GetDescriptorList().GetEndpoints().foreach
+  (
+    [](auto ep)
+    {
+#if (__cplusplus > 201703L)        
+      printf("\nEP = %02X \r", TypeUnBox<ep>::bEndpointAddress::GetEpAddress() );
+#else
+      printf("\nEP = %02X \r", type_unbox<decltype(ep)>::bEndpointAddress::GetEpAddress() );
+#endif    
+    }
+  );
+  
   return 0;
 }
 

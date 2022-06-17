@@ -4,6 +4,6 @@ USB Descriptor classes
 
 See main.cpp for Examples and Tests.
 
-C++17 Compiler Explorer https://godbolt.org/z/K3YfGM4br
+C++17 Compiler Explorer https://godbolt.org/z/6xaMce6n3
 
-C++20 Compiler Explorer https://godbolt.org/z/rjo1PGMMh
+C++20 Compiler Explorer https://godbolt.org/z/ex6554Wbe

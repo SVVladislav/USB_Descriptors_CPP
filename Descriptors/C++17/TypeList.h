@@ -22,9 +22,8 @@ template<typename T>
 constexpr auto value_unbox(T t) { return T::type::value; }
 
 template<typename... Ts>
-class TypeList 
+struct TypeList 
 {
-public:
   static constexpr auto size() { return sizeof...(Ts); }
   
   static constexpr bool is_empty() { return (sizeof...(Ts) == 0); }

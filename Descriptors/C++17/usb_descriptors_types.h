@@ -241,8 +241,16 @@ class DEVICE_CONFIGURATION_DESCRIPTOR
                   [](auto eps)
                   { 
                     return TypeBox<typename type_unbox<decltype(eps)>::bEndpointAddress>{}; 
-                  }).is_unique(), "Duplicate Endpoints!");      
+                  }).is_unique(), "Duplicate Endpoints!"); 
+  static_assert(DESCRIPTOR_LIST<DSCS...>::GetInterfaces().transform(
+                  [](auto eps)
+                  { 
+                    return TypeBox<typename type_unbox<decltype(eps)>::bInterfaceNumber>{}; 
+                  }).is_unique(), "Duplicate Interfaces!");  
 public:
+  
+  static constexpr auto GetDescriptorList() { return DESCRIPTOR_LIST<CFG_DESCR, DSCS...>{}; }
+  
   constexpr DEVICE_CONFIGURATION_DESCRIPTOR()
   {
     uint8_t* p = buf;
@@ -250,7 +258,7 @@ public:
     (copy_buf(DSCS{}, &p), ...);
   }
   uint8_t buf[sz]{};
-};  
+};
   
 //==============================================================================
 // Interface Descriptor Type
@@ -322,6 +330,7 @@ class bEndpointAddress : public ENDPOINT_ADDRES_BASE
   static_assert(number<16, "Endpoint number: Bit 3...0");
   static constexpr uint8_t value = (uint8_t)dir + number;
 public:
+  static constexpr auto GetEpAddress() { return value; }
   using type = ValueBox<REC_TYPE::bEndpointAddress>;
   uint8_t buf[1]{value};  
 };
